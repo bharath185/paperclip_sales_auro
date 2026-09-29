@@ -1,75 +1,75 @@
 // Generated from ui/src/index.css by scripts/sync-agent-palette-tokens.mjs.
 export const CAP_V1_COLORS = {
   "bubblegum-sky": {
-    "a": "#8bd4ff",
-    "b": "#ff51bf"
+    "a": "#d1fae5",
+    "b": "#166534"
   },
   "pink-lemonade": {
-    "a": "#ff26a8",
-    "b": "#fff78a"
+    "a": "#f59e0b",
+    "b": "#12372a"
   },
   "orchid-peach": {
-    "a": "#e771ff",
-    "b": "#ffd87c"
+    "a": "#99f6e4",
+    "b": "#0f766e"
   },
   "coral-mint": {
-    "a": "#beffe8",
-    "b": "#ff797b"
+    "a": "#ecfdf5",
+    "b": "#15803d"
   },
   "lime-lagoon": {
-    "a": "#b4ffa4",
-    "b": "#26dfff"
+    "a": "#a3e635",
+    "b": "#166534"
   },
   "arctic-blue": {
-    "a": "#97fff3",
-    "b": "#0084ff"
+    "a": "#14b8a6",
+    "b": "#0b2a1e"
   },
   "solar-flare": {
-    "a": "#ecca5c",
-    "b": "#fe3c3f"
+    "a": "#f59e0b",
+    "b": "#166534"
   },
   "violet-ember": {
-    "a": "#ff5c43",
-    "b": "#6262ff"
+    "a": "#12372a",
+    "b": "#a3e635"
   },
   "deep-tide": {
-    "a": "#003d60",
-    "b": "#32fffc"
+    "a": "#0b2a1e",
+    "b": "#14b8a6"
   },
   "coral-current": {
-    "a": "#26e2ff",
-    "b": "#ff6666"
+    "a": "#2dd4bf",
+    "b": "#115e59"
   },
   "golden-hour": {
-    "a": "#ffcd4f",
-    "b": "#fde5ba"
+    "a": "#fde68a",
+    "b": "#92400e"
   },
   "tangerine-cobalt": {
-    "a": "#ffad32",
-    "b": "#4169ff"
+    "a": "#16a34a",
+    "b": "#f59e0b"
   },
   "electric-grove": {
-    "a": "#b4ff32",
-    "b": "#008d58"
+    "a": "#a3e635",
+    "b": "#14532d"
   },
   "flamingo-jade": {
-    "a": "#ff4f9a",
-    "b": "#36edaa"
+    "a": "#a7f3d0",
+    "b": "#166534"
   },
   "cherry-pop": {
-    "a": "#ff69db",
-    "b": "#d51c46"
+    "a": "#15803d",
+    "b": "#14b8a6"
   },
   "turquoise-cherry": {
-    "a": "#37f0db",
-    "b": "#ff4f64"
+    "a": "#14b8a6",
+    "b": "#f59e0b"
   },
   "ultraviolet-tide": {
-    "a": "#7516cf",
-    "b": "#00e8d1"
+    "a": "#0b2a1e",
+    "b": "#a3e635"
   },
   "muted-dream": {
-    "a": "#a6aaad",
-    "b": "#44464a"
+    "a": "#cbd5e1",
+    "b": "#475569"
   }
 } as const;

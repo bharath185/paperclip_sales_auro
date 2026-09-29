@@ -1,7 +1,6 @@
 # Bundled UI Fonts
 
-Paperclip bundles Inter for the board UI so screenshots and packaged installs use
-the same sans-serif text stack without relying on host font packages.
+Project Auro bundles Inter and JetBrains Mono for consistent UI and code/log rendering.
 
 ## Inter
 
@@ -15,3 +14,11 @@ the same sans-serif text stack without relying on host font packages.
 
 Redistribution note: Inter is redistributed under the SIL Open Font License 1.1.
 The bundled WOFF2 files are included unmodified from the upstream v4.1 release.
+
+## JetBrains Mono
+
+- Upstream project: https://github.com/JetBrains/JetBrainsMono
+- Source file: `fonts/webfonts/JetBrainsMono-Regular.woff2`
+- License: SIL Open Font License 1.1
+- License text: `JetBrainsMono-OFL.txt` (copyright notice and full license)
+- The bundled WOFF2 file is included unmodified from the upstream project.

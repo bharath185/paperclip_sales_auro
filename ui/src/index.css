@@ -11,6 +11,14 @@
 }
 
 @font-face {
+  font-family: "JetBrains Mono";
+  src: url("/fonts/JetBrainsMono-Regular.woff2") format("woff2");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 100 900;
+}
+
+@font-face {
   font-family: "InterVariable";
   src: url("/fonts/InterVariable-Italic.woff2") format("woff2");
   font-display: swap;
@@ -22,7 +30,7 @@
 
 @theme inline {
   --font-sans: "InterVariable", "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -55,6 +63,36 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-slate-50: var(--auro-slate-50);
+  --color-slate-100: var(--auro-slate-100);
+  --color-slate-200: var(--auro-slate-200);
+  --color-slate-300: var(--auro-slate-300);
+  --color-slate-400: var(--auro-slate-400);
+  --color-slate-500: var(--auro-slate-500);
+  --color-slate-600: var(--auro-slate-600);
+  --color-slate-700: var(--auro-slate-700);
+  --color-slate-800: var(--auro-slate-800);
+  --color-slate-900: var(--auro-slate-900);
+  --color-gray-50: var(--auro-slate-50);
+  --color-gray-100: var(--auro-slate-100);
+  --color-gray-200: var(--auro-slate-200);
+  --color-gray-300: var(--auro-slate-300);
+  --color-gray-400: var(--auro-slate-400);
+  --color-gray-500: var(--auro-slate-500);
+  --color-gray-600: var(--auro-slate-600);
+  --color-gray-700: var(--auro-slate-700);
+  --color-gray-800: var(--auro-slate-800);
+  --color-gray-900: var(--auro-slate-900);
+  --color-zinc-50: var(--auro-slate-50);
+  --color-zinc-100: var(--auro-slate-100);
+  --color-zinc-200: var(--auro-slate-200);
+  --color-zinc-300: var(--auro-slate-300);
+  --color-zinc-400: var(--auro-slate-400);
+  --color-zinc-500: var(--auro-slate-500);
+  --color-zinc-600: var(--auro-slate-600);
+  --color-zinc-700: var(--auro-slate-700);
+  --color-zinc-800: var(--auro-slate-800);
+  --color-zinc-900: var(--auro-slate-900);
   /* Multiplicative radius ladder (modern shadcn/Tailwind v4 mapping):
      sm/md/lg/xl/2xl/3xl/4xl = 0.6/0.8/1.0/1.4/1.8/2.2/2.6 x the single
      --radius knob (base anchor 0.5rem = 8px; rounded-lg IS the anchor).
@@ -68,47 +106,215 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Auro palette aliases keep existing feature surfaces on the new brand. */
+  --color-green-50: var(--auro-mint);
+  --color-green-100: var(--auro-mint-strong);
+  --color-green-200: #a7f3d0;
+  --color-green-300: #6ee7b7;
+  --color-green-400: #34d399;
+  --color-green-500: var(--auro-primary);
+  --color-green-600: var(--auro-primary-hover);
+  --color-green-700: var(--auro-primary-active);
+  --color-green-800: #14532d;
+  --color-green-900: var(--auro-forest);
+  --color-emerald-50: var(--auro-mint);
+  --color-emerald-100: var(--auro-mint-strong);
+  --color-emerald-200: #a7f3d0;
+  --color-emerald-300: #6ee7b7;
+  --color-emerald-400: #34d399;
+  --color-emerald-500: var(--auro-primary);
+  --color-emerald-600: var(--auro-primary-hover);
+  --color-emerald-700: var(--auro-primary-active);
+  --color-emerald-800: #14532d;
+  --color-emerald-900: var(--auro-forest);
+  --color-blue-50: #f0fdfa;
+  --color-blue-100: #ccfbf1;
+  --color-blue-200: #99f6e4;
+  --color-blue-300: #5eead4;
+  --color-blue-400: #2dd4bf;
+  --color-blue-500: var(--auro-teal);
+  --color-blue-600: #0f766e;
+  --color-blue-700: #115e59;
+  --color-blue-800: #134e4a;
+  --color-blue-900: #042f2e;
+  --color-sky-50: #f0fdfa;
+  --color-sky-100: #ccfbf1;
+  --color-sky-200: #99f6e4;
+  --color-sky-300: #5eead4;
+  --color-sky-400: #2dd4bf;
+  --color-sky-500: var(--auro-teal);
+  --color-sky-600: #0f766e;
+  --color-sky-700: #115e59;
+  --color-sky-800: #134e4a;
+  --color-sky-900: #042f2e;
+  --color-teal-50: #f0fdfa;
+  --color-teal-100: #ccfbf1;
+  --color-teal-200: #99f6e4;
+  --color-teal-300: #5eead4;
+  --color-teal-400: #2dd4bf;
+  --color-teal-500: var(--auro-teal);
+  --color-teal-600: #0f766e;
+  --color-teal-700: #115e59;
+  --color-teal-800: #134e4a;
+  --color-teal-900: #042f2e;
+  --color-cyan-50: #f0fdfa;
+  --color-cyan-100: #ccfbf1;
+  --color-cyan-200: #99f6e4;
+  --color-cyan-300: #5eead4;
+  --color-cyan-400: #2dd4bf;
+  --color-cyan-500: var(--auro-teal);
+  --color-cyan-600: #0f766e;
+  --color-cyan-700: #115e59;
+  --color-cyan-800: #134e4a;
+  --color-cyan-900: #042f2e;
+  --color-violet-50: var(--auro-mint);
+  --color-violet-100: var(--auro-mint-strong);
+  --color-violet-200: #a7f3d0;
+  --color-violet-300: #6ee7b7;
+  --color-violet-400: #34d399;
+  --color-violet-500: var(--auro-teal);
+  --color-violet-600: #0f766e;
+  --color-violet-700: #115e59;
+  --color-violet-800: #134e4a;
+  --color-violet-900: #042f2e;
+  --color-purple-50: var(--auro-mint);
+  --color-purple-100: var(--auro-mint-strong);
+  --color-purple-200: #a7f3d0;
+  --color-purple-300: #6ee7b7;
+  --color-purple-400: #34d399;
+  --color-purple-500: var(--auro-teal);
+  --color-purple-600: #0f766e;
+  --color-purple-700: #115e59;
+  --color-purple-800: #134e4a;
+  --color-purple-900: #042f2e;
+  --color-indigo-50: #ecfdf5;
+  --color-indigo-100: #d1fae5;
+  --color-indigo-200: #a7f3d0;
+  --color-indigo-300: #6ee7b7;
+  --color-indigo-400: #34d399;
+  --color-indigo-500: #16a34a;
+  --color-indigo-600: #15803d;
+  --color-indigo-700: #166534;
+  --color-indigo-800: #14532d;
+  --color-indigo-900: #0b2a1e;
+  --color-amber-50: #fffbeb;
+  --color-amber-100: #fef3c7;
+  --color-amber-200: #fde68a;
+  --color-amber-300: #fcd34d;
+  --color-amber-400: #fbbf24;
+  --color-amber-500: var(--auro-gold);
+  --color-amber-600: #d97706;
+  --color-amber-700: #b45309;
+  --color-amber-800: #92400e;
+  --color-amber-900: #78350f;
+  --color-yellow-50: #fffbeb;
+  --color-yellow-100: #fef3c7;
+  --color-yellow-200: #fde68a;
+  --color-yellow-300: #fcd34d;
+  --color-yellow-400: #fbbf24;
+  --color-yellow-500: var(--auro-gold);
+  --color-yellow-600: #d97706;
+  --color-yellow-700: #b45309;
+  --color-yellow-800: #92400e;
+  --color-yellow-900: #78350f;
+  --color-orange-50: #fffbeb;
+  --color-orange-100: #fef3c7;
+  --color-orange-200: #fde68a;
+  --color-orange-300: #fcd34d;
+  --color-orange-400: #fbbf24;
+  --color-orange-500: var(--auro-gold);
+  --color-orange-600: #d97706;
+  --color-orange-700: #b45309;
+  --color-orange-800: #92400e;
+  --color-orange-900: #78350f;
+  --color-red-50: #fef2f2;
+  --color-red-100: #fee2e2;
+  --color-red-200: #fecaca;
+  --color-red-300: #fca5a5;
+  --color-red-400: #f87171;
+  --color-red-500: var(--auro-danger);
+  --color-red-600: #b91c1c;
+  --color-red-700: #991b1b;
+  --color-red-800: #7f1d1d;
+  --color-red-900: #450a0a;
+  --color-rose-50: #fef2f2;
+  --color-rose-100: #fee2e2;
+  --color-rose-200: #fecaca;
+  --color-rose-300: #fca5a5;
+  --color-rose-400: #f87171;
+  --color-rose-500: var(--auro-danger);
+  --color-rose-600: #b91c1c;
+  --color-rose-700: #991b1b;
+  --color-rose-800: #7f1d1d;
+  --color-rose-900: #450a0a;
 }
 
 :root {
   color-scheme: light;
+  --auro-primary: #16A34A;
+  --auro-primary-hover: #15803D;
+  --auro-primary-active: #166534;
+  --auro-forest: #0B2A1E;
+  --auro-forest-raised: #12372A;
+  --auro-mint: #ECFDF5;
+  --auro-mint-strong: #D1FAE5;
+  --auro-lime: #A3E635;
+  --auro-teal: #14B8A6;
+  --auro-gold: #F59E0B;
+  --auro-danger: #DC2626;
+  --auro-slate-50: #F8FAFC;
+  --auro-slate-100: #F1F5F9;
+  --auro-slate-200: #E2E8F0;
+  --auro-slate-300: #CBD5E1;
+  --auro-slate-400: #94A3B8;
+  --auro-slate-500: #64748B;
+  --auro-slate-600: #475569;
+  --auro-slate-700: #334155;
+  --auro-slate-800: #1E293B;
+  --auro-slate-900: #0F172A;
+  --auro-terminal-bg: var(--auro-forest);
+  --auro-terminal-fg: var(--auro-slate-50);
+  --auro-terminal-cursor: var(--auro-teal);
+  --auro-terminal-selection: color-mix(in srgb, var(--auro-teal) 35%, transparent);
+  --auro-terminal-font-size: 12px;
   --radius: 0.5rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --background: var(--auro-slate-50);
+  --foreground: var(--auro-slate-900);
+  --card: #FFFFFF;
+  --card-foreground: var(--auro-slate-900);
+  --popover: #FFFFFF;
+  --popover-foreground: var(--auro-slate-900);
+  --primary: var(--auro-primary);
+  --primary-foreground: var(--auro-forest);
+  --secondary: var(--auro-mint);
+  --secondary-foreground: var(--auro-forest);
+  --muted: var(--auro-slate-100);
+  --muted-foreground: var(--auro-slate-600);
+  --accent: var(--auro-mint-strong);
+  --accent-foreground: var(--auro-forest);
+  --destructive: var(--auro-danger);
+  --destructive-foreground: #FFFFFF;
+  --border: var(--auro-slate-200);
+  --input: var(--auro-slate-300);
+  --ring: var(--auro-primary);
   --scrollbar-thumb: oklch(0.7 0 0);
   --scrollbar-thumb-hover: oklch(0.6 0 0);
   --scrollbar-size: 8px;
   --scrollbar-radius: 999px;
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.88 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --chart-1: var(--auro-primary);
+  --chart-2: var(--auro-teal);
+  --chart-3: var(--auro-gold);
+  --chart-4: var(--auro-slate-600);
+  --chart-5: var(--auro-lime);
+  --sidebar: var(--auro-forest);
+  --sidebar-foreground: var(--auro-slate-50);
+  --sidebar-primary: var(--auro-lime);
+  --sidebar-primary-foreground: var(--auro-forest);
+  --sidebar-accent: var(--auro-forest-raised);
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #244A3A;
+  --sidebar-ring: var(--auro-lime);
   --chip-match-title-bg: oklch(0.97 0.02 265);
   --chip-match-title-fg: oklch(0.4 0.13 265);
   --chip-match-title-border: oklch(0.85 0.05 265);
@@ -130,30 +336,27 @@
   --paperclip-doc-annotation-highlight-y-outset: 0.125rem;
   --paperclip-doc-annotation-highlight-radius: 0.1875rem;
 
-  /* Brand agent-capsule gradient stops (paperclip.ing/brand/).
-     "The capsule is the agent" — each agent gets a 2-stop gradient,
-     --agent-Na (top) → --agent-Nb (bottom). Brand-fixed hex, identical
-     across themes. Indices 1–10; consumed by AgentCapsule. */
-  --agent-1a: #f7cfdc;
-  --agent-1b: #1f7a3a;
-  --agent-2a: #c9a9e8;
-  --agent-2b: #ee79a1;
-  --agent-3a: #28164b;
-  --agent-3b: #7a1530;
-  --agent-4a: #f3e6c4;
-  --agent-4b: #e3a21a;
-  --agent-5a: #1f4dd6;
-  --agent-5b: #3aa35c;
-  --agent-6a: #e94b27;
-  --agent-6b: #5a1122;
-  --agent-7a: #7eb6e3;
-  --agent-7b: #ee79a1;
-  --agent-8a: #9ce8a7;
-  --agent-8b: #bd7ff0;
-  --agent-9a: #f3b49e;
-  --agent-9b: #1f4ed4;
-  --agent-10a: #f2d95f;
-  --agent-10b: #4fbcba;
+  /* Auro agent-capsule gradients use forest, mint, lime, teal and gold. */
+  --agent-1a: var(--auro-mint-strong);
+  --agent-1b: var(--auro-primary-active);
+  --agent-2a: #a7f3d0;
+  --agent-2b: var(--auro-forest-raised);
+  --agent-3a: #d9f99d;
+  --agent-3b: #365314;
+  --agent-4a: #fde68a;
+  --agent-4b: #92400e;
+  --agent-5a: #99f6e4;
+  --agent-5b: #115e59;
+  --agent-6a: #bbf7d0;
+  --agent-6b: #14532d;
+  --agent-7a: #ccfbf1;
+  --agent-7b: #134e4a;
+  --agent-8a: #ecfccb;
+  --agent-8b: #3f6212;
+  --agent-9a: #fef3c7;
+  --agent-9b: #78350f;
+  --agent-10a: #d1fae5;
+  --agent-10b: #064e3b;
 
   /* Onboarding mascot artwork (brand-fixed, theme-independent). Keeping the
      SVG palette in the token layer preserves the source asset while allowing
@@ -172,11 +375,11 @@
      modes. Values mirror the PAP-75 brand palette (gray inert, blue liveness,
      amber queued, violet review, green done, red blocked). */
   --status-agent-idle: #a8aeb2;
-  --status-agent-running: #2563eb;
-  --status-agent-paused: #f59e0b;
-  --status-agent-error: #dc2626;
+  --status-agent-running: var(--auro-teal);
+  --status-agent-paused: var(--auro-gold);
+  --status-agent-error: var(--auro-danger);
   /* Dashboard agent card: translucent running treatment from the Paper design. */
-  --dashboard-run-accent: oklch(62.3% 0.214 259.815);
+  --dashboard-run-accent: var(--auro-teal);
   --dashboard-run-background: color-mix(in oklab, var(--dashboard-run-accent) 4%, transparent);
   --dashboard-run-border: color-mix(in oklab, var(--dashboard-run-accent) 25%, transparent);
   --dashboard-list-leading-width: calc(var(--spacing) * 6);
@@ -185,11 +388,11 @@
   --dashboard-task-list-columns: var(--dashboard-list-leading-width) minmax(0, 1fr) calc(var(--spacing) * 36) var(--dashboard-list-id-width) var(--dashboard-list-time-width);
   --dashboard-activity-list-columns: var(--dashboard-list-leading-width) minmax(0, 1fr) var(--dashboard-list-id-width) var(--dashboard-list-time-width);
   --status-task-backlog: #a8aeb2;
-  --status-task-todo: #f59e0b;
-  --status-task-in_progress: #2563eb;
+  --status-task-todo: var(--auro-gold);
+  --status-task-in_progress: var(--auro-teal);
   --status-task-in_review: #7c3aed;
-  --status-task-done: #22c55e;
-  --status-task-blocked: #dc2626;
+  --status-task-done: var(--auro-primary);
+  --status-task-blocked: var(--auro-danger);
   --status-task-cancelled: #a8aeb2;
 
   /* Task status ICON hues (PAP-238 3b) — AA-tuned (every glyph ≥ 3:1 against
@@ -204,19 +407,19 @@
      `.dark` block below overrides the hues that need a mode-specific value. */
   --status-task-icon-backlog: #52585d;   /* gray darkened — 7.21:1 on paper */
   --status-task-icon-todo: #cc7a00;       /* amber darkened — clears 3:1 */
-  --status-task-icon-in_progress: var(--color-blue-600); /* matches nav dots and live labels */
+  --status-task-icon-in_progress: #0f766e; /* AA contrast on light surfaces */
   --status-task-icon-in_review: var(--status-task-in_review);     /* #7c3aed (light) */
   --status-task-icon-done: #16a34a;       /* green darkened — clears 3:1 */
   --status-task-icon-blocked: var(--status-task-blocked);         /* #dc2626 both modes */
   --status-task-icon-cancelled: #52585d;
   --status-task-icon-in_queue: var(--status-task-icon-in_progress); /* blocked shape, same mode-aware blue */
 
-  --folder-color-indigo: #6366f1;
-  --folder-color-violet: #8b5cf6;
-  --folder-color-emerald: #10b981;
-  --folder-color-cyan: #06b6d4;
-  --folder-color-amber: #f59e0b;
-  --folder-color-slate: #64748b;
+  --folder-color-indigo: var(--auro-forest-raised);
+  --folder-color-violet: var(--auro-teal);
+  --folder-color-emerald: var(--auro-primary);
+  --folder-color-cyan: var(--auro-teal);
+  --folder-color-amber: var(--auro-gold);
+  --folder-color-slate: var(--auro-slate-500);
   --gtc-folder-row: 1rem minmax(0, 1fr) auto;
   --gtc-folder-row-actions: 1rem minmax(0, 1fr) auto auto;
   --sz-folder-rail: 13.25rem;
@@ -253,9 +456,9 @@
      --motion-ease-out is declared by the decision/quicklook block below. */
 
   /* Duration primitives (tunable) */
-  --motion-duration-base: 240ms;
-  --motion-duration-slow: 360ms;
-  --motion-duration-deliberate: 520ms;
+  --motion-duration-base: 180ms;
+  --motion-duration-slow: 200ms;
+  --motion-duration-deliberate: 200ms;
 
   /* State/component-scoped — grouped for the tweak panel (tunable) */
   --motion-marker-enter: var(--motion-duration-base);
@@ -364,44 +567,44 @@
 }
 
 .dark {
-  --background: oklch(0.205 0 0);
-  --foreground: oklch(0.985 0 0);
+  --background: var(--auro-forest);
+  --foreground: var(--auro-slate-50);
   --side-panel-bg: var(--background);
-  --side-panel-fg: oklch(0.985 0 0);
+  --side-panel-fg: var(--auro-slate-50);
   --streamlined-task-detail-bg: var(--background);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --bubble-agent: oklch(0.185 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.637 0.237 25.331); /* Gallery feedback round 1: user preferred master's original dark destructive red over the preset's softer 0.704 0.191 22.216. */
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --card: var(--auro-forest-raised);
+  --card-foreground: var(--auro-slate-50);
+  --popover: var(--auro-forest-raised);
+  --popover-foreground: var(--auro-slate-50);
+  --primary: var(--auro-lime);
+  --primary-foreground: var(--auro-forest);
+  --bubble-agent: #102F24;
+  --secondary: #1B4535;
+  --secondary-foreground: var(--auro-slate-50);
+  --muted: #1B4535;
+  --muted-foreground: #CBD5E1;
+  --accent: #1B4535;
+  --accent-foreground: var(--auro-slate-50);
+  --destructive: var(--auro-danger);
+  --destructive-foreground: #FFFFFF;
+  --border: #315543;
+  --input: #41634F;
+  --ring: var(--auro-lime);
   --scrollbar-thumb: oklch(0.4 0 0);
   --scrollbar-thumb-hover: oklch(0.5 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.32 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --chart-1: var(--auro-lime);
+  --chart-2: var(--auro-teal);
+  --chart-3: var(--auro-gold);
+  --chart-4: #94A3B8;
+  --chart-5: #6EE7B7;
+  --sidebar: var(--auro-forest);
+  --sidebar-foreground: var(--auro-slate-50);
+  --sidebar-primary: var(--auro-lime);
+  --sidebar-primary-foreground: var(--auro-forest);
+  --sidebar-accent: var(--auro-forest-raised);
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #244A3A;
+  --sidebar-ring: var(--auro-lime);
   --chip-match-title-bg: oklch(0.27 0.04 265 / 0.5);
   --chip-match-title-fg: oklch(0.78 0.10 265);
   --chip-match-title-border: oklch(0.4 0.06 265);
@@ -419,7 +622,7 @@
      Blocked retains its base red; in_queue follows the progress icon blue. */
   --status-task-icon-backlog: #9a958a;
   --status-task-icon-todo: #fbbf24;
-  --status-task-icon-in_progress: var(--color-blue-400); /* matches nav dots and live labels */
+  --status-task-icon-in_progress: #2dd4bf; /* Auro information accent */
   --status-task-icon-in_review: #9474f0;  /* deeper than violet-400, reads purple */
   --status-task-icon-done: #34d06f;
   --status-task-icon-cancelled: #9a958a;
@@ -993,11 +1196,21 @@
 /* Sidebar actions cover the trailing live label without moving row content,
    fading into the row surface like the task-detail tab close control. */
 .primary-sidebar-surface {
-  --sidebar-action-rest-surface: color-mix(in srgb, var(--border) 50%, var(--background));
-  background-color: var(--sidebar-action-rest-surface);
+  --sidebar-action-rest-surface: var(--sidebar);
+  background-color: var(--sidebar);
+  color: var(--sidebar-foreground);
 }
 .dark .primary-sidebar-surface {
-  --sidebar-action-rest-surface: var(--muted);
+  --sidebar-action-rest-surface: var(--sidebar);
+}
+.auro-sidebar [class*="text-foreground"] {
+  color: var(--sidebar-foreground);
+}
+.auro-sidebar [class*="text-muted-foreground"] {
+  color: var(--auro-slate-300);
+}
+.auro-sidebar [class*="bg-background"] {
+  background-color: var(--sidebar);
 }
 .sidebar-action-row {
   --sidebar-action-surface: var(--sidebar-action-rest-surface, var(--background));
@@ -1357,40 +1570,13 @@
   animation: shimmer-text-slide 2.5s linear infinite;
 }
 
-.paperclip-thinking-icon {
+.auro-mark-motion {
   transform-origin: 50% 50%;
+  animation: auro-mark-turn 1.6s var(--motion-ease-standard) infinite;
 }
 
-@keyframes paperclip-thinking-draw {
-  0% {
-    stroke-dasharray: 0 85.717;
-    stroke-dashoffset: -85.717;
-    opacity: 1;
-    animation-timing-function: cubic-bezier(0.455, 0.03, 0.515, 0.955);
-  }
-  39.0625% {
-    stroke-dasharray: 85.717 85.717;
-    stroke-dashoffset: 0;
-    opacity: 1;
-    animation-timing-function: cubic-bezier(0.55, 0.055, 0.675, 0.19);
-  }
-  78.125% {
-    stroke-dasharray: 0 85.717;
-    stroke-dashoffset: 0;
-    opacity: 1;
-  }
-  78.225% {
-    opacity: 0;
-  }
-  100% {
-    stroke-dasharray: 0 85.717;
-    stroke-dashoffset: 0;
-    opacity: 0;
-  }
-}
-
-.paperclip-thinking-icon-path {
-  animation: paperclip-thinking-draw 1s linear infinite;
+@keyframes auro-mark-turn {
+  to { transform: rotate(360deg); }
 }
 
 /* Muted variant (task-chat v7 activity rows): the sweep runs over the
@@ -1446,11 +1632,8 @@
     background: none;
   }
 
-  .paperclip-thinking-icon-path {
+  .auro-mark-motion {
     animation: none;
-    opacity: 1;
-    stroke-dasharray: 85.717 85.717;
-    stroke-dashoffset: 0;
   }
 }
 
@@ -2390,7 +2573,7 @@ span.paperclip-mention-chip[data-mention-kind="external-object"] {
 :root {
   --hex-959596: #959596; /* Muted feed actor/verb/title text (ActivityFeed.tsx, FeedCard.tsx) — PRIOR-ART-flagged gap cluster, no existing token match. */
   --hex-1d1d1d: #1d1d1d; /* OnboardingWizard.tsx dark decorative panel background, singleton. */
-  --hex-22d3ee: #22d3ee; /* OrgChart.tsx agent status dot — 'running' (independent palette from --status-agent-*, see TOKEN-AUDIT.md 1.2). */
+  --hex-22d3ee: var(--auro-teal); /* Auro agent status dot. */
   --hex-4ade80: #4ade80; /* OrgChart.tsx agent status dot — 'active'. */
   --hex-facc15: #facc15; /* OrgChart.tsx agent status dot — 'paused' / 'idle' (shared value). */
   --hex-f87171: #f87171; /* OrgChart.tsx agent status dot — 'error'. */
@@ -2403,7 +2586,7 @@ span.paperclip-mention-chip[data-mention-kind="external-object"] {
   --hex-737373: #737373; /* ActivityCharts.tsx — run activity 'other' segment tint. */
   --project-none: #64748b; /* Semantic rename of --hex-64748b (DECISION-SHEET.md A3, value unchanged). 'No project assigned' muted-slate fallback (TOKEN-AUDIT.md 1.3) across Routines/MarkdownEditor/RoutineRunVariablesDialog/RoutineList/IssueColumns/editable-sections; also ActivityCharts.tsx status 'backlog'. */
   --project-seed: #6366f1; /* Semantic rename of --hex-6366f1 (DECISION-SHEET.md A3, value unchanged). Project-color-fallback indigo seed default (ProjectDetail/PipelineSettings/IssueProperties/NewIssueDialog) — new-project-color-picker-seed family per TOKEN-AUDIT.md 1.3. */
-  --liveness-blue: #2563eb; /* DECISION-SHEET.md A6: IssueChatThread.tsx human-message 'liveness blue' bubble (PAP-95 rev 5). Same value as --status-task-in_progress by coincidence, decoupled on purpose so a future status-hue change doesn't drag the chat bubble along. */
+  --liveness-blue: var(--auro-forest-raised); /* Human-authored message surface uses the Auro forest accent. */
   --app-logo-tile-1: #ff4f00;
   --app-logo-tile-2: #24292f;
   --app-logo-tile-3: #4a154b;
@@ -2710,12 +2893,7 @@ span.paperclip-mention-chip[data-mention-kind="external-object"] {
    table did not catch them, but they are still value-bearing gradient
    brackets in scope for this batch's final sweep.
 
-   Allowlist (sites intentionally left as-is - see ALLOWLIST doc-comment
-   at the end of this file for the machine-readable list consumed by
-   scripts/check-token-gates.mjs):
-   allow ui/src/components/ui/dialog.tsx — tw-animate-css plugin utilities (zoom-in-[0.97] etc.) are dead/no-op classes today (plugin not installed, verified via built-CSS grep); nothing to tokenize without visually changing a currently-inert class
-   allow ui/src/components/ui/alert-dialog.tsx — same tw-animate-css dead-class situation as dialog.tsx
-*/
+ */
 :root {
   --gtc-1: 56px 56px 24px minmax(0,1fr); /* Extracted from ui/src/components/DocumentDiffModal.tsx (grid-cols-[56px_56px_24px_minmax(0,1fr)]). */
   --gtc-case-revisions: 16rem 1fr; /* Extracted from ui/src/components/CaseRevisionRail.tsx (grid-cols-[16rem_1fr]). */
@@ -2844,36 +3022,18 @@ span.paperclip-mention-chip[data-mention-kind="external-object"] {
    narrative (why each decision was made); this block is the source of truth
    for WHICH sites are exempt.
 
-   CRITERIA UPDATE (Run 2 review, DECISION-SHEET.md B1 user ruling): the
-   allowlist criteria now also include FIRST-PARTY INTENTIONAL ONE-OFF
-   DECORATION — deliberate, never-reused decorative gradients/shadows on
-   demo/UX-lab surfaces stay inline (spirit over letter of DESIGN.md
-   principle 2) rather than being minted as singleton --gradient-extract-*
-   and --shadow-extract-* tokens. Production-surface decoration tokens were
-   KEPT; only tokens whose sole consumers were *UxLab.tsx demo pages were
-   reverted to their original literal form under this rule.
-
    Format (one line per entry, do not reflow):
      * allow <repo-relative-path> — <reason>
 
    A path may appear more than once if it has more than one distinct
    allowlisted concern. Paths are matched by the gate script as a substring
    of the file being checked (repo-relative, POSIX-style).
-   * allow ui/src/pages/CompanyEnvironments.tsx — xterm.js terminal theme config (background/foreground/cursor/cursorAccent/selectionBackground hex, fontSize: 12); functional third-party option object, not a rendered CSS value
-   * allow ui/src/components/issue-properties/IssueProperties.tsx — newLabelColor color-picker seed state persisted into the label-create payload sent to the backend; a var() string would corrupt that payload
-   * allow ui/src/pages/CompanySkills.tsx — DISCOVERY_ACCENTS palette array feeds skill.color, persisted/compared JS data (SkillCreateDraft), not just a rendered value; also fontSize: Math.round(size * 0.42), computed at runtime from a prop, not a static literal
-   * allow ui/src/components/IssueColumns.tsx — accentColor fallback also feeds pickTextColorForPillBg() contrast math (lib/color-contrast.ts), which needs a real hex string to compute luminance
-   * allow ui/src/components/CompanyPatternIcon.tsx — canvas 2D fillStyle built from a runtime-computed template literal, not a static literal at all
-   * allow ui/src/components/onboarding/PillGuy.tsx — inline rendering of the approved pill-1 dormant/alive brand SVG assets; their fixed eye, body, tuft, and gradient fills are the illustration artwork rather than themeable interface colors
-   * allow ui/src/components/ui/scroll-area.tsx — rounded-[inherit] is a CSS keyword, not a literal value; nothing to extract
-   * allow ui/src/components/ui/dialog.tsx — tw-animate-css plugin utilities (zoom-in-[0.97], zoom-out-[0.97], slide-in-from-top-[1%], slide-out-to-top-[1%], animate-in, animate-out, fade-in-0, fade-out-0) are dead/no-op classes today (the tw-animate-css plugin is not installed and no matching @utility exists in this file; confirmed via grep of the built storybook-static CSS — none of these class names emit any rule); nothing to tokenize without visually changing a currently-inert class
-   * allow ui/src/components/ui/alert-dialog.tsx — same tw-animate-css dead-class situation as dialog.tsx (zoom-out-[0.97], zoom-in-[0.97])
-   * allow ui/src/components/ProjectWorkspaceSummaryCard.tsx — min-[420px]: is a Tailwind arbitrary BREAKPOINT variant (responsive container-query-style prefix), not a value applied to a property; the variant position cannot reference a CSS custom property, so it cannot be tokenized without changing Tailwind's own variant syntax
-   * allow ui/src/components/FileTree.tsx — max-[480px]: arbitrary breakpoint variant (x2), same reasoning as min-[420px] above
-   * allow ui/src/pages/RunTranscriptUxLab.tsx — first-party intentional one-off decoration (demo/UX-lab page): hero/card gradients + shadows reverted from singleton tokens per DECISION-SHEET.md B1 user ruling
-   * allow ui/src/pages/InviteUxLab.tsx — first-party intentional one-off decoration (demo/UX-lab page): hero/card gradients + shadows reverted from singleton tokens per DECISION-SHEET.md B1 user ruling
-   * allow ui/src/pages/IssueChatUxLab.tsx — first-party intentional one-off decoration (demo/UX-lab page): hero/card gradients + shadows reverted from singleton tokens per DECISION-SHEET.md B1 user ruling
-   * allow ui/src/pages/SystemNoticeUxLab.tsx — first-party intentional one-off decoration (demo/UX-lab page): hero/card gradients + shadows reverted from singleton tokens per DECISION-SHEET.md B1 user ruling
+    * allow ui/src/pages/CompanySkills.tsx — DISCOVERY_ACCENTS palette array feeds skill.color, persisted/compared JS data (SkillCreateDraft), not just a rendered value; also fontSize: Math.round(size * 0.42), computed at runtime from a prop, not a static literal
+    * allow ui/src/components/CompanyPatternIcon.tsx — canvas 2D fillStyle built from a runtime-computed template literal, not a static literal at all
+    * allow ui/src/components/onboarding/PillGuy.tsx — inline rendering of the approved pill-1 dormant/alive brand SVG assets; their fixed eye, body, tuft, and gradient fills are the illustration artwork rather than themeable interface colors
+    * allow ui/src/components/ui/scroll-area.tsx — rounded-[inherit] is a CSS keyword, not a literal value; nothing to extract
+    * allow ui/src/components/ProjectWorkspaceSummaryCard.tsx — min-[420px]: is a Tailwind arbitrary BREAKPOINT variant (responsive container-query-style prefix), not a value applied to a property; the variant position cannot reference a CSS custom property, so it cannot be tokenized without changing Tailwind's own variant syntax
+    * allow ui/src/components/FileTree.tsx — max-[480px]: arbitrary breakpoint variant (x2), same reasoning as min-[420px] above
 
    Test-fixture hex-literal policy (Batch 4, resolving TOKEN-AUDIT.md section
    8 item 10 "Needs human decision" for these specific sites): the following
@@ -3094,42 +3254,42 @@ span.paperclip-mention-chip[data-mention-kind="external-object"] {
 
 /* Immutable ClipLab cap-v1 artwork tokens. New artwork gets a new version. */
 :root {
-  --agent-cap-v1-bubblegum-sky-a: #8bd4ff;
-  --agent-cap-v1-bubblegum-sky-b: #ff51bf;
-  --agent-cap-v1-pink-lemonade-a: #ff26a8;
-  --agent-cap-v1-pink-lemonade-b: #fff78a;
-  --agent-cap-v1-orchid-peach-a: #e771ff;
-  --agent-cap-v1-orchid-peach-b: #ffd87c;
-  --agent-cap-v1-coral-mint-a: #beffe8;
-  --agent-cap-v1-coral-mint-b: #ff797b;
-  --agent-cap-v1-lime-lagoon-a: #b4ffa4;
-  --agent-cap-v1-lime-lagoon-b: #26dfff;
-  --agent-cap-v1-arctic-blue-a: #97fff3;
-  --agent-cap-v1-arctic-blue-b: #0084ff;
-  --agent-cap-v1-solar-flare-a: #ecca5c;
-  --agent-cap-v1-solar-flare-b: #fe3c3f;
-  --agent-cap-v1-violet-ember-a: #ff5c43;
-  --agent-cap-v1-violet-ember-b: #6262ff;
-  --agent-cap-v1-deep-tide-a: #003d60;
-  --agent-cap-v1-deep-tide-b: #32fffc;
-  --agent-cap-v1-coral-current-a: #26e2ff;
-  --agent-cap-v1-coral-current-b: #ff6666;
-  --agent-cap-v1-golden-hour-a: #ffcd4f;
-  --agent-cap-v1-golden-hour-b: #fde5ba;
-  --agent-cap-v1-tangerine-cobalt-a: #ffad32;
-  --agent-cap-v1-tangerine-cobalt-b: #4169ff;
-  --agent-cap-v1-electric-grove-a: #b4ff32;
-  --agent-cap-v1-electric-grove-b: #008d58;
-  --agent-cap-v1-flamingo-jade-a: #ff4f9a;
-  --agent-cap-v1-flamingo-jade-b: #36edaa;
-  --agent-cap-v1-cherry-pop-a: #ff69db;
-  --agent-cap-v1-cherry-pop-b: #d51c46;
-  --agent-cap-v1-turquoise-cherry-a: #37f0db;
-  --agent-cap-v1-turquoise-cherry-b: #ff4f64;
-  --agent-cap-v1-ultraviolet-tide-a: #7516cf;
-  --agent-cap-v1-ultraviolet-tide-b: #00e8d1;
-  --agent-cap-v1-muted-dream-a: #a6aaad;
-  --agent-cap-v1-muted-dream-b: #44464a;
+  --agent-cap-v1-bubblegum-sky-a: #d1fae5;
+  --agent-cap-v1-bubblegum-sky-b: #166534;
+  --agent-cap-v1-pink-lemonade-a: #f59e0b;
+  --agent-cap-v1-pink-lemonade-b: #12372a;
+  --agent-cap-v1-orchid-peach-a: #99f6e4;
+  --agent-cap-v1-orchid-peach-b: #0f766e;
+  --agent-cap-v1-coral-mint-a: #ecfdf5;
+  --agent-cap-v1-coral-mint-b: #15803d;
+  --agent-cap-v1-lime-lagoon-a: #a3e635;
+  --agent-cap-v1-lime-lagoon-b: #166534;
+  --agent-cap-v1-arctic-blue-a: #14b8a6;
+  --agent-cap-v1-arctic-blue-b: #0b2a1e;
+  --agent-cap-v1-solar-flare-a: #f59e0b;
+  --agent-cap-v1-solar-flare-b: #166534;
+  --agent-cap-v1-violet-ember-a: #12372a;
+  --agent-cap-v1-violet-ember-b: #a3e635;
+  --agent-cap-v1-deep-tide-a: #0b2a1e;
+  --agent-cap-v1-deep-tide-b: #14b8a6;
+  --agent-cap-v1-coral-current-a: #2dd4bf;
+  --agent-cap-v1-coral-current-b: #115e59;
+  --agent-cap-v1-golden-hour-a: #fde68a;
+  --agent-cap-v1-golden-hour-b: #92400e;
+  --agent-cap-v1-tangerine-cobalt-a: #16a34a;
+  --agent-cap-v1-tangerine-cobalt-b: #f59e0b;
+  --agent-cap-v1-electric-grove-a: #a3e635;
+  --agent-cap-v1-electric-grove-b: #14532d;
+  --agent-cap-v1-flamingo-jade-a: #a7f3d0;
+  --agent-cap-v1-flamingo-jade-b: #166534;
+  --agent-cap-v1-cherry-pop-a: #15803d;
+  --agent-cap-v1-cherry-pop-b: #14b8a6;
+  --agent-cap-v1-turquoise-cherry-a: #14b8a6;
+  --agent-cap-v1-turquoise-cherry-b: #f59e0b;
+  --agent-cap-v1-ultraviolet-tide-a: #0b2a1e;
+  --agent-cap-v1-ultraviolet-tide-b: #a3e635;
+  --agent-cap-v1-muted-dream-a: #cbd5e1;
+  --agent-cap-v1-muted-dream-b: #475569;
 }
 
 /* Persistent plugin surface. The host reserves mobile navigation/safe-area
