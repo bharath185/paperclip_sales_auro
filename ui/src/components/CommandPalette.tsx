@@ -114,7 +114,12 @@ export function CommandPalette() {
       }
     }
     document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    const handleOpenEvent = () => setOpen(true);
+    window.addEventListener("auro:open-command-palette", handleOpenEvent);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("auro:open-command-palette", handleOpenEvent);
+    };
   }, [isMobile, setSidebarOpen]);
 
   useEffect(() => {

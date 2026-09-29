@@ -113,7 +113,7 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-full h-full min-h-0 border-r border-border bg-background flex flex-col">
+    <aside data-auro-sidebar className="auro-sidebar w-full h-full min-h-0 border-r border-sidebar-border bg-sidebar text-sidebar-foreground flex flex-col">
       {/* Top bar: company name, aligned with top sections and borderless.
           Search deliberately does NOT live here:
           the header's spare width goes to the workspace/organization name,

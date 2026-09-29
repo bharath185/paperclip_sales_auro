@@ -19,6 +19,7 @@ import {
   useParams,
 } from "@/lib/router";
 import { Sidebar } from "./Sidebar.production";
+import { AuroTopbar } from "./AuroTopbar";
 import { CompanySettingsSidebar } from "./CompanySettingsSidebar.production";
 import { CompanySettingsNav } from "./access/CompanySettingsNav";
 import { AppsSidebar } from "./AppsSidebar.production";
@@ -708,15 +709,16 @@ export function Layout() {
           ) : null}
 
           <div
-            className={cn(
-              "flex min-w-0 flex-col",
-              isMobile ? "w-full" : "h-full flex-1",
-            )}
+          className={cn(
+            "flex min-w-0 flex-col",
+            isMobile ? "w-full" : "h-full flex-1",
+          )}
           >
+            <AuroTopbar mobile={isMobile} />
             <div
               className={cn(
                 isMobile &&
-                  "sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85",
+                  "sticky top-(--sz-60px) z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85",
               )}
             >
               <StandaloneBrowserControls mobile={isMobile} />

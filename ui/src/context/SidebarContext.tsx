@@ -35,11 +35,23 @@ interface SidebarContextValue {
 const SidebarContext = createContext<SidebarContextValue | null>(null);
 
 const MOBILE_BREAKPOINT = 768;
+const SIDEBAR_COLLAPSED_KEY = "auro.sidebar.collapsed";
+const LEGACY_SIDEBAR_COLLAPSED_KEY = "paperclip.sidebar.collapsed";
+
+function readCollapsedPreference() {
+  try {
+    const saved = localStorage.getItem(SIDEBAR_COLLAPSED_KEY) ?? localStorage.getItem(LEGACY_SIDEBAR_COLLAPSED_KEY);
+    return saved === "1";
+  } catch {
+    return false;
+  }
+}
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < MOBILE_BREAKPOINT);
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= MOBILE_BREAKPOINT);
-
+  const [userCollapsed, setUserCollapsed] = useState(readCollapsedPreference);
+  const [peeking, setPeeking] = useState(false);
   const [routeRequestsCollapsed, setRouteRequestsCollapsed] = useState(false);
   const [forceCollapsed, setForceCollapsed] = useState(false);
 
@@ -53,14 +65,19 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     return () => mql.removeEventListener("change", onChange);
   }, []);
 
-  // The icon rail has been retired. Keep the old API inert so routes and
-  // plugins compiled against it cannot collapse the global navigation.
-  const collapsed = false;
+  const collapsed = !isMobile && (userCollapsed || routeRequestsCollapsed || forceCollapsed);
   const collapseLocked = false;
-  const peeking = false;
-  const setCollapsed = useCallback((_next: boolean) => {}, []);
-  const toggleCollapsed = useCallback(() => {}, []);
-  const setPeeking = useCallback((_next: boolean) => {}, []);
+  const setCollapsed = useCallback((next: boolean) => setUserCollapsed(next), []);
+  const toggleCollapsed = useCallback(() => setUserCollapsed((current) => !current), []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, userCollapsed ? "1" : "0");
+      localStorage.removeItem(LEGACY_SIDEBAR_COLLAPSED_KEY);
+    } catch {
+      // Navigation remains usable when browser storage is unavailable.
+    }
+  }, [userCollapsed]);
 
   const toggleSidebar = useCallback(() => setSidebarOpen((v) => !v), []);
 

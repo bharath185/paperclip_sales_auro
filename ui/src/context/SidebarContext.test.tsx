@@ -70,34 +70,40 @@ describe("SidebarContext", () => {
     localStorage.clear();
   });
 
-  it("keeps the global navigation expanded even when legacy collapsed state exists", () => {
+  it("migrates legacy collapsed state and persists the Auro navigation preference", () => {
     active = renderProvider();
 
-    expect(capturedValue?.collapsed).toBe(false);
+    expect(capturedValue?.collapsed).toBe(true);
     expect(capturedValue?.collapseLocked).toBe(false);
     expect(capturedValue?.peeking).toBe(false);
-  });
+    expect(localStorage.getItem("auro.sidebar.collapsed")).toBe("1");
+    expect(localStorage.getItem("paperclip.sidebar.collapsed")).toBeNull();
 
-  it("keeps the legacy collapse API inert", () => {
-    active = renderProvider();
-
-    act(() => capturedValue?.setCollapsed(true));
     act(() => capturedValue?.toggleCollapsed());
-    act(() => capturedValue?.setForceCollapsed(true));
-    act(() => capturedValue?.setPeeking(true));
-
     expect(capturedValue?.collapsed).toBe(false);
-    expect(capturedValue?.collapseLocked).toBe(false);
-    expect(capturedValue?.peeking).toBe(false);
+    expect(localStorage.getItem("auro.sidebar.collapsed")).toBe("0");
   });
 
-  it("tracks route requests for compatibility without collapsing the navigation", () => {
+  it("combines the saved collapse preference with route and contextual requests", () => {
     active = renderProvider();
+
+    act(() => capturedValue?.setCollapsed(false));
+    expect(capturedValue?.collapsed).toBe(false);
 
     act(() => capturedValue?.setRouteRequestsCollapsed(true));
+    expect(capturedValue?.collapsed).toBe(true);
 
-    expect(capturedValue?.routeRequestsCollapsed).toBe(true);
+    act(() => capturedValue?.setRouteRequestsCollapsed(false));
+    act(() => capturedValue?.setForceCollapsed(true));
+    expect(capturedValue?.collapsed).toBe(true);
+
+    act(() => capturedValue?.setForceCollapsed(false));
+    act(() => capturedValue?.setPeeking(true));
+    expect(capturedValue?.peeking).toBe(true);
+
     expect(capturedValue?.collapsed).toBe(false);
+    expect(capturedValue?.collapseLocked).toBe(false);
+    expect(capturedValue?.routeRequestsCollapsed).toBe(false);
   });
 
   it("retains sidebarOpen and toggleSidebar for the mobile drawer", () => {

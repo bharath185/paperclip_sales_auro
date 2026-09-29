@@ -71,6 +71,10 @@ vi.mock("./Sidebar", () => ({
   ),
 }));
 
+vi.mock("./AuroTopbar", () => ({
+  AuroTopbar: () => <header data-testid="auro-topbar" />,
+}));
+
 vi.mock("./CompanySettingsSidebar", () => ({
   CompanySettingsSidebar: () => <div>Company settings sidebar</div>,
 }));

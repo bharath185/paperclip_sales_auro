@@ -118,11 +118,12 @@ export function Sidebar({ children }: { children?: ReactNode }) {
 
   return (
     <aside
+      data-auro-sidebar
       className={cn(
-        "w-full h-full min-h-0 flex flex-col",
+        "auro-sidebar w-full h-full min-h-0 flex flex-col bg-sidebar text-sidebar-foreground",
         streamlinedUiEnabled
           ? primarySidebarStyles.surface
-          : "border-r border-border bg-background",
+          : "border-r border-sidebar-border",
       )}
     >
       {/* Top bar: company name, aligned with top sections and borderless.

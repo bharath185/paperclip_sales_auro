@@ -99,6 +99,7 @@ import { CliAuthPage } from "./pages/CliAuth";
 import { InviteLandingPage } from "./pages/InviteLanding";
 import { JoinRequestQueue } from "./pages/JoinRequestQueue";
 import { NotFoundPage } from "./pages/NotFound";
+import { AboutPage } from "./pages/About";
 import { useCompany } from "./context/CompanyContext";
 import { useDialogActions, useDialogState } from "./context/DialogContext";
 import { loadLastInboxTab } from "./lib/inbox";
@@ -148,6 +149,7 @@ function boardRoutes(streamlinedUiEnabled: boolean) {
     <>
       <Route index element={<Navigate to="dashboard" replace />} />
       <Route path="dashboard" element={<Dashboard />} />
+      <Route path="about" element={<AboutPage />} />
       <Route path="dashboard/live" element={<DashboardLive />} />
       <Route
         path="timeline"

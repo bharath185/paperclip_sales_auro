@@ -9,10 +9,9 @@ import { tenantSignInReturnPath } from "@/lib/cloudLinks";
 import { queryKeys } from "../lib/queryKeys";
 import { getRememberedInvitePath } from "../lib/invite-memory";
 import { Button } from "@/components/ui/button";
-import { AsciiArtAnimation } from "@/components/AsciiArtAnimation";
-import { PaperclipLoading } from "@/components/AnimatedPaperclipIcon";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { PaperclipLockup } from "../components/PaperclipLockup";
+import { LoaderCircle, Network, ShieldCheck, Sparkles } from "lucide-react";
+import { AuroLogo } from "@/components/AuroLogo";
 
 type AuthMode = "sign_in" | "sign_up";
 
@@ -85,7 +84,10 @@ export function AuthPage() {
   if (healthQuery.isLoading || isSessionLoading || session) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
-        <PaperclipLoading className="min-h-0" />
+        <>
+          <LoaderCircle className="size-8 animate-spin text-primary" aria-label="Loading Project Auro" />
+          <span className="sr-only">Loading Project Auro</span>
+        </>
       </div>
     );
   }
@@ -108,15 +110,15 @@ export function AuthPage() {
       <div className="w-full md:w-1/2 flex flex-col overflow-y-auto">
         <div className="w-full max-w-md mx-auto my-auto px-8 py-12">
           <div className="mb-8">
-            <PaperclipLockup className="h-5 w-auto" />
+            <AuroLogo markClassName="size-10" />
           </div>
 
           <h1 className="text-xl font-semibold">
-            {mode === "sign_in" ? "Sign in to Paperclip" : "Create your Paperclip account"}
+            {mode === "sign_in" ? "Welcome back" : "Create your Auro account"}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {mode === "sign_in"
-              ? "Use your email and password to access this instance."
+              ? "Sign in to continue to your AI organizations."
               : "Create an account for this instance. Email confirmation is not required in v1."}
           </p>
 
@@ -220,9 +222,33 @@ export function AuthPage() {
         </div>
       </div>
 
-      {/* Right half — ASCII art animation (hidden on mobile) */}
-      <div className="hidden md:block w-1/2 overflow-hidden">
-        <AsciiArtAnimation />
+      <div className="relative hidden min-h-full w-1/2 overflow-hidden bg-sidebar p-10 text-sidebar-foreground md:flex md:flex-col md:justify-between lg:p-16">
+        <div className="relative z-10 flex items-center gap-3">
+          <img src="/auro-mark.svg" className="size-10" alt="" />
+          <span className="text-sm font-semibold tracking-tight">AI work, under control.</span>
+        </div>
+        <div className="relative z-10 max-w-lg space-y-6">
+          <p className="text-xs font-semibold uppercase tracking-(--tracking-caps) text-lime-300">Your operating system for AI organizations</p>
+          <h2 className="text-4xl font-semibold leading-tight tracking-tight lg:text-5xl">Build teams that turn goals into work.</h2>
+          <p className="max-w-md text-sm leading-relaxed text-sidebar-foreground/75">Bring agents together around shared outcomes, give every task a clear owner, and keep human decisions in the loop.</p>
+          <div className="grid gap-3 pt-3 sm:grid-cols-3">
+            <div className="rounded-xl border border-sidebar-border bg-sidebar-accent/70 p-4">
+              <Network className="mb-3 size-5 text-lime-300" aria-hidden="true" />
+              <p className="text-xs font-medium">Organization</p>
+            </div>
+            <div className="rounded-xl border border-sidebar-border bg-sidebar-accent/70 p-4">
+              <Sparkles className="mb-3 size-5 text-lime-300" aria-hidden="true" />
+              <p className="text-xs font-medium">Agent work</p>
+            </div>
+            <div className="rounded-xl border border-sidebar-border bg-sidebar-accent/70 p-4">
+              <ShieldCheck className="mb-3 size-5 text-lime-300" aria-hidden="true" />
+              <p className="text-xs font-medium">Human control</p>
+            </div>
+          </div>
+        </div>
+        <p className="relative z-10 text-xs text-sidebar-foreground/60">Clear ownership. Visible progress. Governed autonomy.</p>
+        <div className="pointer-events-none absolute -right-28 -top-28 size-96 rounded-full border border-sidebar-border/80" aria-hidden="true" />
+        <div className="pointer-events-none absolute -right-12 -top-12 size-64 rounded-full border border-sidebar-border/80" aria-hidden="true" />
       </div>
     </div>
   );

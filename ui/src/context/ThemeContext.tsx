@@ -16,20 +16,25 @@ interface ThemeContextValue {
   toggleTheme: () => void;
 }
 
-const THEME_STORAGE_KEY = "paperclip.theme";
-const DARK_THEME_COLOR = "#18181b";
-const LIGHT_THEME_COLOR = "#ffffff";
+const THEME_STORAGE_KEY = "auro.theme";
+const LEGACY_THEME_STORAGE_KEY = "paperclip.theme";
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 function resolveThemeFromDocument(): Theme {
   if (typeof document === "undefined") return "dark";
+  try {
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY) ?? window.localStorage.getItem(LEGACY_THEME_STORAGE_KEY);
+    if (stored === "light" || stored === "dark") return stored;
+  } catch {
+    // Fall through to the theme already selected by the startup script.
+  }
   return document.documentElement.classList.contains("dark") ? "dark" : "light";
 }
 
 function hasStoredTheme(): boolean {
   if (typeof window === "undefined") return false;
   try {
-    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY) ?? window.localStorage.getItem(LEGACY_THEME_STORAGE_KEY);
     return stored === "light" || stored === "dark";
   } catch {
     return false;
@@ -44,7 +49,8 @@ function applyTheme(theme: Theme) {
   root.style.colorScheme = isDark ? "dark" : "light";
   const themeColorMeta = document.querySelector('meta[name="theme-color"]');
   if (themeColorMeta instanceof HTMLMetaElement) {
-    themeColorMeta.setAttribute("content", isDark ? DARK_THEME_COLOR : LIGHT_THEME_COLOR);
+    const background = getComputedStyle(root).getPropertyValue("--background").trim();
+    if (background) themeColorMeta.setAttribute("content", background);
   }
 }
 
@@ -70,6 +76,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (!hasExplicitChoice) return;
     try {
       localStorage.setItem(THEME_STORAGE_KEY, theme);
+      localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
     } catch {
       // Ignore local storage write failures in restricted environments.
     }
@@ -110,4 +117,8 @@ export function useTheme() {
     throw new Error("useTheme must be used within ThemeProvider");
   }
   return context;
+}
+
+export function useOptionalTheme() {
+  return useContext(ThemeContext);
 }

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { useQuery } from "@tanstack/react-query";
 import { Outlet, useLocation, useNavigate, useNavigationType, useParams } from "@/lib/router";
 import { Sidebar } from "./Sidebar";
+import { AuroTopbar } from "./AuroTopbar";
 import { CompanySettingsSidebar } from "./CompanySettingsSidebar";
 import { CompanySettingsNav } from "./access/CompanySettingsNav";
 import { AppsSidebar } from "./AppsSidebar";
@@ -697,10 +698,11 @@ export function Layout({ sidebarSections }: { sidebarSections?: ReactNode }) {
         ) : null}
 
         <div className={cn("flex min-w-0 flex-col", isMobile ? "w-full" : "h-full flex-1")}>
+          <AuroTopbar mobile={isMobile} />
           <div
             className={cn(
               !isMobile && useStreamlinedTaskDetailShell && "hidden",
-              isMobile && "sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85",
+              isMobile && "sticky top-(--sz-60px) z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85",
             )}
           >
             <StandaloneBrowserControls mobile={isMobile} />

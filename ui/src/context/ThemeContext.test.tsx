@@ -5,7 +5,8 @@ import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ThemeProvider, useTheme } from "./ThemeContext";
 
-const THEME_STORAGE_KEY = "paperclip.theme";
+const THEME_STORAGE_KEY = "auro.theme";
+const LEGACY_THEME_STORAGE_KEY = "paperclip.theme";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
@@ -171,6 +172,27 @@ describe("ThemeContext", () => {
       mql.dispatch(true);
     });
     expect(observedTheme).not.toBe("dark");
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  it("migrates a saved Paperclip theme choice to the Auro preference key", () => {
+    window.localStorage.setItem(LEGACY_THEME_STORAGE_KEY, "dark");
+    const root = createRoot(container);
+
+    act(() => {
+      root.render(
+        <ThemeProvider>
+          <Probe />
+        </ThemeProvider>,
+      );
+    });
+
+    expect(observedTheme).toBe("dark");
+    expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe("dark");
+    expect(window.localStorage.getItem(LEGACY_THEME_STORAGE_KEY)).toBeNull();
 
     act(() => {
       root.unmount();
