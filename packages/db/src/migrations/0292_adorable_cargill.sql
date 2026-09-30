@@ -1,0 +1,1 @@
+ALTER TABLE "agent_api_keys" ALTER COLUMN "key_prefix" DROP NOT NULL;
