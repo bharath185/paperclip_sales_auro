@@ -39,8 +39,21 @@ export function parseYamlSimple(yamlStr: string): ModelConfig {
 
     // Strip inline comment if any
     const commentIdx = valStr.indexOf("#");
-    if (commentIdx !== -1 && !valStr.startsWith('"') && !valStr.startsWith("'")) {
-      valStr = valStr.slice(0, commentIdx).trim();
+    if (commentIdx !== -1) {
+      // If starts with quote, only keep up to closing quote
+      if (valStr.startsWith('"')) {
+        const secondQuote = valStr.indexOf('"', 1);
+        if (secondQuote !== -1) {
+          valStr = valStr.slice(1, secondQuote).trim();
+        }
+      } else if (valStr.startsWith("'")) {
+        const secondQuote = valStr.indexOf("'", 1);
+        if (secondQuote !== -1) {
+          valStr = valStr.slice(1, secondQuote).trim();
+        }
+      } else {
+        valStr = valStr.slice(0, commentIdx).trim();
+      }
     }
 
     if (valStr === "") {

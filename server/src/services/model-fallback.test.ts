@@ -41,29 +41,29 @@ describe("Model Fallback Service", () => {
   describe("resolveEffectiveModel", () => {
     it("resolves role-specific primary and fallback models from config/models.yaml", () => {
       const gov = resolveEffectiveModel("governance");
-      expect(gov.primaryModel).toBe("opencode/deepseek-r1");
-      expect(gov.fallbackModel).toBe("opencode/deepseek-v3");
+      expect(gov.primaryModel).toBe("opencode/deepseek-v4-pro");
+      expect(gov.fallbackModel).toBe("opencode/deepseek-v4-flash");
       expect(gov.quotaWarningThreshold).toBe(80);
 
       const sales = resolveEffectiveModel("sales");
-      expect(sales.primaryModel).toBe("opencode/gpt-6-luna");
-      expect(sales.fallbackModel).toBe("opencode/deepseek-v3");
+      expect(sales.primaryModel).toBe("opencode/deepseek-v4-pro");
+      expect(sales.fallbackModel).toBe("opencode/deepseek-v4-flash");
 
       const dev = resolveEffectiveModel("developer");
-      expect(dev.primaryModel).toBe("opencode/claude-sonnet-5");
-      expect(dev.fallbackModel).toBe("opencode/deepseek-v3");
+      expect(dev.primaryModel).toBe("opencode/kimi-k2.7-code");
+      expect(dev.fallbackModel).toBe("opencode/deepseek-v4-pro");
     });
 
     it("falls back to default role mapping for unknown roles", () => {
       const unknown = resolveEffectiveModel("unknown_role");
-      expect(unknown.primaryModel).toBe("opencode/claude-sonnet-5");
-      expect(unknown.fallbackModel).toBe("opencode/deepseek-r1");
+      expect(unknown.primaryModel).toBe("opencode/deepseek-v4-pro");
+      expect(unknown.fallbackModel).toBe("opencode/deepseek-v4-flash");
     });
 
     it("honors requested custom primary model", () => {
       const custom = resolveEffectiveModel("governance", "custom-model");
       expect(custom.primaryModel).toBe("custom-model");
-      expect(custom.fallbackModel).toBe("opencode/deepseek-v3");
+      expect(custom.fallbackModel).toBe("opencode/deepseek-v4-flash");
     });
   });
 
@@ -76,11 +76,11 @@ describe("Model Fallback Service", () => {
       });
 
       expect(result.result).toBe("success-output");
-      expect(result.modelUsed).toBe("opencode/deepseek-r1");
+      expect(result.modelUsed).toBe("opencode/deepseek-v4-pro");
       expect(result.wasFallback).toBe(false);
       expect(result.retriesAttempted).toBe(0);
       expect(execute).toHaveBeenCalledTimes(1);
-      expect(execute).toHaveBeenCalledWith("opencode/deepseek-r1", false);
+      expect(execute).toHaveBeenCalledWith("opencode/deepseek-v4-pro", false);
     });
 
     it("retries on 429 and succeeds on second attempt", async () => {
@@ -104,7 +104,7 @@ describe("Model Fallback Service", () => {
       });
 
       expect(result.result).toBe("success-after-retry");
-      expect(result.modelUsed).toBe("opencode/deepseek-r1");
+      expect(result.modelUsed).toBe("opencode/deepseek-v4-pro");
       expect(result.wasFallback).toBe(false);
       expect(result.retriesAttempted).toBe(1);
       expect(execute).toHaveBeenCalledTimes(2);
@@ -131,12 +131,12 @@ describe("Model Fallback Service", () => {
       });
 
       expect(result.result).toBe("success-from-fallback");
-      expect(result.modelUsed).toBe("opencode/deepseek-v3");
+      expect(result.modelUsed).toBe("opencode/deepseek-v4-flash");
       expect(result.wasFallback).toBe(true);
       expect(result.retriesAttempted).toBe(1);
       expect(onFallback).toHaveBeenCalledWith(
-        "opencode/deepseek-r1",
-        "opencode/deepseek-v3",
+        "opencode/deepseek-v4-pro",
+        "opencode/deepseek-v4-flash",
         expect.objectContaining({ status: 429 }),
       );
     });
@@ -160,11 +160,11 @@ describe("Model Fallback Service", () => {
       });
 
       expect(result.result).toBe("fallback-response");
-      expect(result.modelUsed).toBe("opencode/deepseek-v3");
+      expect(result.modelUsed).toBe("opencode/deepseek-v4-flash");
       expect(result.wasFallback).toBe(true);
       expect(onFallback).toHaveBeenCalledWith(
-        "opencode/gpt-6-luna",
-        "opencode/deepseek-v3",
+        "opencode/deepseek-v4-pro",
+        "opencode/deepseek-v4-flash",
         expect.objectContaining({ status: 500 }),
       );
     });

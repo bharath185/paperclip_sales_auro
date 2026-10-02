@@ -32,7 +32,7 @@ export const GOVERNANCE_AGENT_DEFINITIONS: Record<GovernanceRole, GovernanceAgen
     title: "Chief Executive Officer",
     reportsToRole: null,
     budgetMonthlyCents: 50000,
-    defaultModel: "opencode/deepseek-r1",
+    defaultModel: "opencode/deepseek-v4-pro",
     permissions: {
       canCreateAgents: true,
       canAssignTasks: true,
@@ -47,7 +47,7 @@ export const GOVERNANCE_AGENT_DEFINITIONS: Record<GovernanceRole, GovernanceAgen
     title: "Chief Technology Officer",
     reportsToRole: "ceo",
     budgetMonthlyCents: 30000,
-    defaultModel: "opencode/claude-sonnet-5",
+    defaultModel: "opencode/deepseek-v4-pro",
     permissions: {
       canCreateTasks: true,
       canWriteDocs: true,
@@ -61,7 +61,7 @@ export const GOVERNANCE_AGENT_DEFINITIONS: Record<GovernanceRole, GovernanceAgen
     title: "Product Manager",
     reportsToRole: "ceo",
     budgetMonthlyCents: 20000,
-    defaultModel: "opencode/gpt-6-luna",
+    defaultModel: "opencode/deepseek-v4-pro",
     permissions: {
       canCreateTasks: true,
       canWriteDocs: true,
@@ -75,7 +75,7 @@ export const GOVERNANCE_AGENT_DEFINITIONS: Record<GovernanceRole, GovernanceAgen
     title: "Quality Assurance Lead",
     reportsToRole: "ceo",
     budgetMonthlyCents: 15000,
-    defaultModel: "opencode/deepseek-r1",
+    defaultModel: "opencode/deepseek-v4-pro",
     permissions: {
       canCreateTasks: true,
       canWriteDocs: true,
@@ -89,7 +89,7 @@ export const GOVERNANCE_AGENT_DEFINITIONS: Record<GovernanceRole, GovernanceAgen
     title: "DevOps Engineer",
     reportsToRole: "ceo",
     budgetMonthlyCents: 20000,
-    defaultModel: "opencode/claude-sonnet-5",
+    defaultModel: "opencode/deepseek-v4-pro",
     permissions: {
       canCreateTasks: true,
       canWriteDocs: true,
@@ -103,7 +103,7 @@ export const GOVERNANCE_AGENT_DEFINITIONS: Record<GovernanceRole, GovernanceAgen
     title: "Security Officer",
     reportsToRole: "ceo",
     budgetMonthlyCents: 25000,
-    defaultModel: "opencode/deepseek-r1",
+    defaultModel: "opencode/kimi-k2.7-code",
     permissions: {
       canCreateTasks: true,
       canWriteDocs: true,
@@ -242,7 +242,7 @@ export function governanceOrgService(db: Db) {
 
     const ceoModel =
       options?.customModels?.ceo ??
-      modelConfig.model_mapping?.governance?.primary ??
+      modelConfig.model_mapping?.ceo?.primary ??
       ceoDef.defaultModel;
 
     const ceoPrompt = await readGovernancePromptFile("ceo");
@@ -293,9 +293,7 @@ export function governanceOrgService(db: Db) {
 
       const model =
         options?.customModels?.[role] ??
-        (role === "cto" || role === "devops"
-          ? modelConfig.model_mapping?.developer?.primary
-          : modelConfig.model_mapping?.governance?.primary) ??
+        modelConfig.model_mapping?.[role]?.primary ??
         def.defaultModel;
 
       const prompt = await readGovernancePromptFile(role);

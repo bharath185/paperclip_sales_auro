@@ -1,33 +1,70 @@
-# Paperclip Model Configuration
+# Auro Model Configuration
 # Maps roles to primary and fallback models for automatic failover
 # Format: role -> { primary: "provider/model", fallback: "provider/model" }
 #
-# When the primary model returns 429 (quota exceeded) or 5xx (server error),
-# the system will retry once, then switch to the fallback model.
+# Approved Model IDs:
+# - DeepSeek V4 Pro: opencode/deepseek-v4-pro (unverified live - pending OpenCode live API key)
+#   Roles: CEO, PM, CTO, QA, DevOps
+# - Kimi K2.7 Code: opencode/kimi-k2.7-code (unverified live - pending OpenCode live API key)
+#   Roles: Security, Hard coding tasks
+# - DeepSeek V4 Flash: opencode/deepseek-v4-flash (unverified live - pending OpenCode live API key)
+#   Roles: Fallback for light roles / general fallback
 
 model_mapping:
-  # Governance agents - high reliability, conservative models
+  # CEO - High-level synthesis, orchestration, approvals
+  ceo:
+    primary: "opencode/deepseek-v4-pro"     # unverified live
+    fallback: "opencode/deepseek-v4-flash"  # unverified live
+
+  # PM - PRDs, user stories, requirements decomposition
+  pm:
+    primary: "opencode/deepseek-v4-pro"     # unverified live
+    fallback: "opencode/deepseek-v4-flash"  # unverified live
+
+  # CTO - Architecture, tech stack, ADRs
+  cto:
+    primary: "opencode/deepseek-v4-pro"     # unverified live
+    fallback: "opencode/deepseek-v4-flash"  # unverified live
+
+  # QA - Test strategy, QA checklist, validation
+  qa:
+    primary: "opencode/deepseek-v4-pro"     # unverified live
+    fallback: "opencode/deepseek-v4-flash"  # unverified live
+
+  # DevOps - CI/CD, infra spec, container topologies
+  devops:
+    primary: "opencode/deepseek-v4-pro"     # unverified live
+    fallback: "opencode/deepseek-v4-flash"  # unverified live
+
+  # Security - STRIDE threat modeling, vulnerability audit
+  security:
+    primary: "opencode/kimi-k2.7-code"      # unverified live
+    fallback: "opencode/deepseek-v4-pro"    # unverified live
+
+  # Hard coding tasks & development
+  coding:
+    primary: "opencode/kimi-k2.7-code"      # unverified live
+    fallback: "opencode/deepseek-v4-pro"    # unverified live
+
+  # Role group defaults
   governance:
-    primary: "opencode/deepseek-r1"
-    fallback: "opencode/deepseek-v3"
-  
-  # Sales agents - cost-optimized, faster models
-  sales:
-    primary: "opencode/gpt-6-luna"
-    fallback: "opencode/deepseek-v3"
-  
-  # Developer agents - latest capabilities
+    primary: "opencode/deepseek-v4-pro"     # unverified live
+    fallback: "opencode/deepseek-v4-flash"  # unverified live
+
   developer:
-    primary: "opencode/claude-sonnet-5"
-    fallback: "opencode/deepseek-v3"
-  
-  # Default fallback for any role not explicitly mapped
+    primary: "opencode/kimi-k2.7-code"      # unverified live
+    fallback: "opencode/deepseek-v4-pro"    # unverified live
+
+  sales:
+    primary: "opencode/deepseek-v4-pro"     # unverified live
+    fallback: "opencode/deepseek-v4-flash"  # unverified live
+
+  # Default fallback for unmapped roles
   default:
-    primary: "opencode/claude-sonnet-5"
-    fallback: "opencode/deepseek-r1"
+    primary: "opencode/deepseek-v4-pro"     # unverified live
+    fallback: "opencode/deepseek-v4-flash"  # unverified live
 
 # Quota warning threshold (percentage)
-# When quota usage reaches this threshold, surface warning in Usage view
 quota_warning_threshold: 80
 
 # Retry configuration

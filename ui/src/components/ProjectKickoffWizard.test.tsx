@@ -88,11 +88,13 @@ describe("ProjectKickoffWizard Component", () => {
   });
 
   it("submits kickoff brief and displays orchestrated results", async () => {
-    const mockResponse = {
+    const mockResponse: any = {
       goalId: "goal-123",
       kickoffIssueId: "issue-456",
       ceoAgentId: "agent-ceo",
       projectName: "Auro Governance Engine",
+      executionMode: "demo" as const,
+      documents: {},
       workstreams: [
         {
           role: "pm",
@@ -101,10 +103,13 @@ describe("ProjectKickoffWizard Component", () => {
           status: "done",
           documents: [
             {
+              kind: "prd",
               title: "Product Requirements Document",
-              path: "docs/PRD.md",
+              fileName: "PRD.md",
               authorRole: "pm",
               content: "PRD content",
+              isValid: true,
+              missingSections: [],
             },
           ],
           reviews: ["QA Review: Verified"],
@@ -116,20 +121,26 @@ describe("ProjectKickoffWizard Component", () => {
           status: "done",
           documents: [
             {
+              kind: "architecture",
               title: "System Architecture Specification",
-              path: "docs/ARCHITECTURE.md",
+              fileName: "ARCHITECTURE.md",
               authorRole: "cto",
               content: "Architecture content",
+              isValid: true,
+              missingSections: [],
             },
           ],
           reviews: ["Security Review: Approved"],
         },
       ],
       projectPackSummary: {
+        kind: "summary",
         title: "Project Pack Executive Summary",
-        path: "docs/PROJECT_PACK_SUMMARY.md",
+        fileName: "PROJECT_PACK_SUMMARY.md",
         authorRole: "ceo",
         content: "Executive summary details",
+        isValid: true,
+        missingSections: [],
       },
       status: "in_review" as const,
     };
@@ -173,7 +184,7 @@ describe("ProjectKickoffWizard Component", () => {
       expect(container!.textContent).toContain("Project Kickoff Orchestrated Successfully");
       expect(container!.textContent).toContain("goal-123");
       expect(container!.textContent).toContain("issue-456");
-      expect(container!.textContent).toContain("docs/PRD.md");
+      expect(container!.textContent).toContain("PRD.md");
     });
   });
 });

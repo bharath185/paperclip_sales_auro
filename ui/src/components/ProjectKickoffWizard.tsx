@@ -131,11 +131,11 @@ export function ProjectKickoffWizard({
                   <div className="flex flex-wrap gap-2 pt-1">
                     {ws.documents.map((doc) => (
                       <span
-                        key={doc.path}
+                        key={doc.fileName || doc.kind}
                         className="inline-flex items-center gap-1 rounded bg-muted px-2 py-0.5 font-mono text-xs text-muted-foreground"
                       >
                         <FileText className="h-3 w-3 text-emerald-500" />
-                        {doc.path}
+                        {doc.fileName || doc.title}
                       </span>
                     ))}
                   </div>

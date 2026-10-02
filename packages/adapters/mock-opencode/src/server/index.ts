@@ -7,6 +7,9 @@ import { type } from "./index.js";
 
 // Mock OpenCode model IDs that are available
 const MOCK_MODELS = [
+  "opencode/deepseek-v4-pro",
+  "opencode/kimi-k2.7-code",
+  "opencode/deepseek-v4-flash",
   "opencode/claude-sonnet-5",
   "opencode/gpt-6-luna",
   "opencode/deepseek-r1",
@@ -30,10 +33,17 @@ const QUOTA_WARN_THRESHOLD = 80; // 80% warning threshold
 
 // Role-based model mapping for fallback (inlined from config/models.yaml)
 const MODEL_MAPPINGS: Record<string, { primary: string; fallback: string }> = {
-  default: { primary: "opencode/claude-sonnet-5", fallback: "opencode/deepseek-r1" },
-  governance: { primary: "opencode/deepseek-r1", fallback: "opencode/deepseek-v3" },
-  sales: { primary: "opencode/gpt-6-luna", fallback: "opencode/deepseek-v3" },
-  developer: { primary: "opencode/claude-sonnet-5", fallback: "opencode/deepseek-v3" },
+  ceo: { primary: "opencode/deepseek-v4-pro", fallback: "opencode/deepseek-v4-flash" },
+  pm: { primary: "opencode/deepseek-v4-pro", fallback: "opencode/deepseek-v4-flash" },
+  cto: { primary: "opencode/deepseek-v4-pro", fallback: "opencode/deepseek-v4-flash" },
+  qa: { primary: "opencode/deepseek-v4-pro", fallback: "opencode/deepseek-v4-flash" },
+  devops: { primary: "opencode/deepseek-v4-pro", fallback: "opencode/deepseek-v4-flash" },
+  security: { primary: "opencode/kimi-k2.7-code", fallback: "opencode/deepseek-v4-pro" },
+  coding: { primary: "opencode/kimi-k2.7-code", fallback: "opencode/deepseek-v4-pro" },
+  default: { primary: "opencode/deepseek-v4-pro", fallback: "opencode/deepseek-v4-flash" },
+  governance: { primary: "opencode/deepseek-v4-pro", fallback: "opencode/deepseek-v4-flash" },
+  sales: { primary: "opencode/deepseek-v4-pro", fallback: "opencode/deepseek-v4-flash" },
+  developer: { primary: "opencode/kimi-k2.7-code", fallback: "opencode/deepseek-v4-pro" },
   // Backward-compatible fallback mappings for test fixtures
   "legacy-default": { primary: "openai/gpt-4o", fallback: "openai/gpt-4-turbo" },
   "legacy-governance": { primary: "anthropic/claude-3-opus-20240229", fallback: "anthropic/claude-3-sonnet-20240229" },
