@@ -148,4 +148,76 @@ describe("DocumentCenter Component", () => {
       expect(governanceApi.approvePack).toHaveBeenCalledWith("test-company");
     });
   });
+
+  it("switches to Markdown Editor tab, allows editing, and saves a new document version", async () => {
+    vi.mocked(governanceApi.updateDocument).mockResolvedValue({
+      success: true,
+      kind: "charter",
+      version: 2,
+      isValid: true,
+      missingSections: [],
+      document: {
+        kind: "charter",
+        title: "Project Charter & Vision",
+        fileName: "CHARTER.md",
+        authorRole: "ceo",
+        currentVersion: 2,
+        content: "# Project Charter Updated",
+        isValid: true,
+        missingSections: [],
+        foundSections: ["Executive Summary"],
+        versions: [],
+        reviews: [],
+      },
+    });
+
+    const root = createRoot(container);
+    await flushSync(async () => {
+      root.render(<DocumentCenter companyId="test-company" />);
+    });
+
+    await vi.waitFor(() => {
+      expect(container.textContent).toContain("CHARTER.md");
+    });
+
+    const editTabBtn = Array.from(container.querySelectorAll("button")).find((b) =>
+      b.textContent?.trim() === "Edit",
+    );
+    expect(editTabBtn).toBeDefined();
+
+    await flushSync(async () => {
+      editTabBtn?.click();
+    });
+
+    await vi.waitFor(() => {
+      expect(container.querySelector("textarea")).toBeTruthy();
+    });
+
+    const textarea = container.querySelector("textarea")!;
+    const summaryInput = container.querySelector("input[placeholder*='Added section']")!;
+
+    await flushSync(async () => {
+      textarea.value = "# Project Charter Updated\n## Executive Summary\nNew summary.";
+      textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      textarea.dispatchEvent(new Event("change", { bubbles: true }));
+
+      if (summaryInput) {
+        (summaryInput as HTMLInputElement).value = "Revised executive summary";
+        summaryInput.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    });
+
+    const saveBtn = Array.from(container.querySelectorAll("button")).find((b) =>
+      b.textContent?.includes("Save New Version"),
+    );
+    expect(saveBtn).toBeDefined();
+
+    await flushSync(async () => {
+      saveBtn?.click();
+    });
+
+    await vi.waitFor(() => {
+      expect(governanceApi.updateDocument).toHaveBeenCalled();
+    });
+  });
 });

@@ -192,4 +192,66 @@ Complete product vision.
     expect(xlsxRes.headers["content-type"]).toContain("application/vnd.ms-excel");
     expect(xlsxRes.text).toContain("<Workbook");
   });
+
+  describe("RBAC and Company Tenant Isolation", () => {
+    let rbacApp: express.Express;
+
+    beforeEach(() => {
+      rbacApp = express();
+      rbacApp.use(express.json());
+      rbacApp.use(governanceRoutes({} as any));
+      rbacApp.use(errorHandler);
+    });
+
+    it("allows access when actor belongs to target company", async () => {
+      const allowedApp = express();
+      allowedApp.use(express.json());
+      allowedApp.use((req, _res, next) => {
+        req.companyId = companyId;
+        req.actor = { type: "board", userId: "user-1", source: "session", companyIds: [companyId] };
+        next();
+      });
+      allowedApp.use(governanceRoutes({} as any));
+      allowedApp.use(errorHandler);
+
+      const res = await request(allowedApp).get(`/companies/${companyId}/governance/documents`);
+      expect(res.status).toBe(200);
+      expect(res.body.documents.length).toBe(12);
+    });
+
+    it("denies access with 403 when actor belongs to a different company (cross-company isolation)", async () => {
+      const otherCompanyApp = express();
+      otherCompanyApp.use(express.json());
+      otherCompanyApp.use((req, _res, next) => {
+        req.companyId = "company-other-tenant-999";
+        req.actor = { type: "board", userId: "user-2", source: "session", companyIds: ["company-other-tenant-999"] };
+        next();
+      });
+      otherCompanyApp.use(governanceRoutes({} as any));
+      otherCompanyApp.use(errorHandler);
+
+      // Attempt to access company-governance-test-123 from other tenant actor
+      const res = await request(otherCompanyApp).get(`/companies/${companyId}/governance/documents`);
+      expect(res.status).toBe(403);
+      expect(res.body.error || res.body.message || res.text).toContain("access");
+    });
+
+    it("denies access with 403 on document center routes for unauthorized cross-company requests", async () => {
+      const unauthorizedApp = express();
+      unauthorizedApp.use(express.json());
+      unauthorizedApp.use((req, _res, next) => {
+        req.companyId = "unauthorized-company";
+        req.actor = { type: "board", userId: "unauthorized-user", source: "session", companyIds: ["unauthorized-company"] };
+        next();
+      });
+      unauthorizedApp.use(governanceRoutes({} as any));
+      unauthorizedApp.use(errorHandler);
+
+      const docsRes = await request(unauthorizedApp).get(`/companies/${companyId}/governance/documents`);
+      expect(docsRes.status).toBe(403);
+
+      const approveRes = await request(unauthorizedApp).post(`/companies/${companyId}/governance/pack/approve`);
+      expect(approveRes.status).toBe(403);
+    });
+  });
 });

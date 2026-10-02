@@ -1,14 +1,74 @@
 import path from "node:path";
 import { describe, it, expect } from "vitest";
 import {
+  assertWindowsSandboxExecutionAllowed,
   buildLocalProcessSandboxSpawnTarget,
   parseLocalProcessFilesystemScope,
   parseLocalProcessNetworkAllowlist,
   parseLocalProcessNetworkScope,
   parseLocalProcessSandboxExtraPaths,
+  resolveWindowsSandboxPolicy,
 } from "./local-process-sandbox.js";
 
 describe("Sandbox Default Execution Mode and Policy Blocking", () => {
+  describe("Windows sandbox isolation defaults & enforcement", () => {
+    it("disables unconfined Windows host execution by default with clear UI/admin message", () => {
+      const defaultPolicy = resolveWindowsSandboxPolicy({
+        env: {}, // no admin opt-in
+      });
+      expect(defaultPolicy.isolationMode).toBe("disabled");
+      expect(defaultPolicy.isAllowed).toBe(false);
+      expect(defaultPolicy.rejectionReason).toContain("Windows host isolation error");
+      expect(defaultPolicy.rejectionReason).toContain("disabled by default");
+    });
+
+    it("allows execution on Windows when Docker or WSL2 isolation mode is configured", () => {
+      const dockerPolicy = resolveWindowsSandboxPolicy({
+        configuredMode: "docker",
+        env: {},
+      });
+      expect(dockerPolicy.isolationMode).toBe("docker");
+      expect(dockerPolicy.isAllowed).toBe(true);
+
+      const wsl2Policy = resolveWindowsSandboxPolicy({
+        configuredMode: "wsl2",
+        env: {},
+      });
+      expect(wsl2Policy.isolationMode).toBe("wsl2");
+      expect(wsl2Policy.isAllowed).toBe(true);
+    });
+
+    it("allows execution on Windows only with explicit admin opt-in", () => {
+      const optInPolicy = resolveWindowsSandboxPolicy({
+        adminOptIn: true,
+      });
+      expect(optInPolicy.isolationMode).toBe("unconfined_admin_opt_in");
+      expect(optInPolicy.isAllowed).toBe(true);
+
+      const envOptInPolicy = resolveWindowsSandboxPolicy({
+        env: { ALLOW_UNCONFINED_WINDOWS_HOST: "true" },
+      });
+      expect(envOptInPolicy.isolationMode).toBe("unconfined_admin_opt_in");
+      expect(envOptInPolicy.isAllowed).toBe(true);
+    });
+
+    it("assertWindowsSandboxExecutionAllowed throws on Windows without isolation or opt-in", () => {
+      if (process.platform === "win32") {
+        expect(() =>
+          assertWindowsSandboxExecutionAllowed({ env: {} }),
+        ).toThrow(/Windows host isolation error/i);
+
+        expect(() =>
+          assertWindowsSandboxExecutionAllowed({ configuredMode: "docker", env: {} }),
+        ).not.toThrow();
+
+        expect(() =>
+          assertWindowsSandboxExecutionAllowed({ adminOptIn: true, env: {} }),
+        ).not.toThrow();
+      }
+    });
+  });
+
   describe("Default execution mode documentation & platform check", () => {
     it("documents and verifies execution mode defaults (Windows: process, Linux: sandbox)", () => {
       const isLinux = process.platform === "linux";

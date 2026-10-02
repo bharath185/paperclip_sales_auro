@@ -22,6 +22,7 @@ import {
   LayoutGrid,
   Users,
   ShieldCheck,
+  TrendingUp,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -244,6 +245,7 @@ export function Sidebar({ children }: { children?: ReactNode }) {
           >
             <SidebarNavItem to="/agents" label="Agents" icon={Users} />
             <SidebarNavItem to="/governance" label="Governance" icon={ShieldCheck} />
+            <SidebarNavItem to="/sales" label="Sales" icon={TrendingUp} />
             <SidebarNavItem to="/skills" label="Skills" icon={Boxes} />
             <SidebarNavItem to="/apps" label="Connectors" icon={Unplug} />
             <SidebarNavItem to="/activity" label="Audit" icon={History} />
@@ -265,6 +267,7 @@ export function Sidebar({ children }: { children?: ReactNode }) {
             >
               <SidebarNavItem to="/org" label="Org" icon={Network} />
               <SidebarNavItem to="/governance" label="Governance" icon={ShieldCheck} />
+              <SidebarNavItem to="/sales" label="Sales" icon={TrendingUp} />
               <SidebarNavItem to="/apps" label="Connectors" icon={Unplug} />
               <SidebarNavItem to="/timeline" label="Timeline" icon={GanttChartSquare} />
               <SidebarNavItem to="/costs" label="Costs" icon={DollarSign} />

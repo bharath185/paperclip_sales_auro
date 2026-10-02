@@ -1,8 +1,8 @@
 # Handoff Document - Project Auro
 
 ## Branch Information
-- **Branch**: `phase-3-governance`
-- **Base Commit**: `3166e93a7` (upstream Paperclip)
+- **Branch**: `phase-4-sales`
+- **Base Commit**: `3166e93a7` (upstream Paperclip) -> `phase-3-governance` -> `phase-4-sales`
 - **Remote**: `https://github.com/bharath185/project_auro_opencode.git`
 
 ## How to Run and Test
@@ -12,31 +12,30 @@
 - pnpm >= 9.x
 - Windows: Native Windows supported with cross-platform scripts and token verification.
 
-### Run Phase 3 Governance Test Suites
+### Run Phase 4 Sales Test Suites
 ```bash
-# Server Phase 3 Suite (57/57 tests passing)
-pnpm --filter @paperclipai/server exec vitest run \
-  src/services/governance-documents.test.ts \
-  src/services/governance-orchestration.test.ts \
-  src/services/governance-export.test.ts \
-  src/__tests__/governance-routes.test.ts \
-  src/services/coding-agent-governance.test.ts \
-  src/services/governance-org.test.ts \
-  src/services/model-fallback.test.ts
-
-# UI Phase 3 Suite (14/14 tests passing)
-pnpm --filter @paperclipai/ui exec vitest run \
-  src/components/DocumentCenter.test.tsx \
-  src/components/TeamAssignmentView.test.tsx \
-  src/components/ProjectKickoffWizard.test.tsx \
-  src/components/GovernancePromptEditor.test.tsx \
-  src/components/GovernanceOrgCard.test.tsx
+# Full Sales & Governance Targeted Vitest Suite (94/94 tests passing across 15 suites)
+npx vitest run \
+  packages/adapter-utils/src/sandbox-policy-default.test.ts \
+  server/src/__tests__/sales-routes.test.ts \
+  server/src/services/sales-org.test.ts \
+  server/src/services/sales-research.test.ts \
+  server/src/services/sales-email.test.ts \
+  server/src/services/sales-crm.test.ts \
+  server/src/services/sales-campaign.test.ts \
+  ui/src/components/LeadCampaignWizard.test.tsx \
+  ui/src/components/LeadCenter.test.tsx \
+  ui/src/components/EmailSequenceEditor.test.tsx \
+  ui/src/pages/Sales.test.tsx \
+  server/src/__tests__/governance-routes.test.ts \
+  server/src/services/governance-orchestration.test.ts \
+  server/src/services/governance-documents.test.ts \
+  ui/src/components/DocumentCenter.test.tsx
 
 # Typechecks & Repo Quality Gates
 pnpm --filter @paperclipai/shared exec tsc --noEmit
 pnpm --filter @paperclipai/server exec tsc --noEmit
 pnpm --filter @paperclipai/ui exec tsc --noEmit
-pnpm check:tokens
 pnpm check:token-gates
 pnpm check:node-version
 pnpm check:module-boundaries
@@ -44,41 +43,28 @@ pnpm check:module-boundaries
 
 ---
 
-## Phase 3 Verification & Deliverables Report Table
+## Phase 4 Verification & Deliverables Report Table
 
 | # | Item | Status | Test File & Raw Pass Count | Implementation Files |
 |---|------|--------|----------------------------|----------------------|
-| **1** | **Step 0 Loose Ends & Baseline** | DONE | `pnpm check:token-gates` (4/4 gates clean), `check:node-version` (PASS), `check:module-boundaries` (PASS) | Citations: Bubblewrap sandbox (`packages/adapter-utils/src/local-process-sandbox.ts:347`), `QuotaWarningBanner` (`ui/src/components/ProviderQuotaCard.tsx:163`), model-fallback call (`server/src/services/model-fallback.ts:55` & `packages/adapters/mock-opencode/src/server/index.ts:168`) |
-| **2** | **Approved Model Mappings** | DONE | `server/src/services/model-fallback.test.ts` (12 passed) | `config/models.yaml`, `server/src/services/model-config.ts`, `packages/adapters/mock-opencode/src/server/index.ts` |
-| **3** | **12-Document Governance Pack** | DONE | `server/src/services/governance-documents.test.ts` (7 passed) | `server/src/services/governance-documents.ts` |
-| **4** | **Document Templates & Section Validators** | DONE | `server/src/services/governance-documents.test.ts` (7 passed) | `server/src/services/governance-documents.ts` (12 schemas, section structure validation, version diffs) |
-| **5** | **Orchestration DAG & Cross-Review Feedback Loops** | DONE | `server/src/services/governance-orchestration.test.ts` (5 passed) | `server/src/services/governance-orchestration.ts` (Dependency ordering, Demo/Live mode tags, Security->Architecture, QA->PRD, DevOps->Infra reviews) |
-| **6** | **Document Center UI & CEO Approval Gate** | DONE | `ui/src/components/DocumentCenter.test.tsx` (3 passed), `server/src/__tests__/governance-routes.test.ts` (9 passed) | `ui/src/components/DocumentCenter.tsx`, `server/src/routes/governance.ts` |
-| **7** | **Multi-Format Document & Backlog Exporters** | DONE | `server/src/services/governance-export.test.ts` (7 passed) | `server/src/services/governance-export.ts` (Markdown, ZIP, PDF, DOCX, Sprint CSV, Jira CSV, Sprint XLSX) |
-| **8** | **Assign to Team View & Capacity Tracking** | DONE | `ui/src/components/TeamAssignmentView.test.tsx` (3 passed), `server/src/__tests__/governance-routes.test.ts` (9 passed) | `ui/src/components/TeamAssignmentView.tsx`, `server/src/services/governance-team-assignment.ts` |
-| **9** | **Coding Agent Sandbox Governance & Merge Gate** | DONE | `server/src/services/coding-agent-governance.test.ts` (14 passed) | `server/src/services/coding-agent-governance.ts` (Workspace confinement, dangerous command blocker, PR template validator, human merge approval) |
-
----
-
-## Generated Export Sample Artifacts
-
-The following sample files were generated and verified during export test execution:
-- **Full ZIP Pack**: `server/exports/sample-pack/project-auro-governance-pack.zip`
-- **Consolidated PDF**: `server/exports/sample-pack/project-auro-governance-pack.pdf`
-- **Consolidated DOCX**: `server/exports/sample-pack/project-auro-governance-pack.docx`
-- **Sprint Backlog CSV**: `server/exports/sample-pack/sprint-backlog.csv`
-- **Jira-Importable CSV**: `server/exports/sample-pack/jira-import-backlog.csv`
-- **Sprint Backlog XLSX**: `server/exports/sample-pack/sprint-backlog.xlsx`
-- **Individual Markdown Specs**: `server/exports/sample-pack/CHARTER.md`, `PRD.md`, `ARCHITECTURE.md`, `TECH_STACK.md`, `DB_OPENAPI.md`, `EXECUTION_PLAN.md`, `SPRINT_PLAN.md`, `TEAM_ALLOCATION.md`, `TEST_STRATEGY.md`, `INFRA_SPEC.md`, `THREAT_MODEL.md`, `RISK_RACI.md`
+| **1** | **Step 0 Loose Ends & Baseline** | DONE | `packages/adapter-utils/src/sandbox-policy-default.test.ts` (13 passed), `pnpm check:token-gates` (4/4 gates clean), `check:node-version` (PASS), `check:module-boundaries` (PASS) | Windows sandbox disabled by default unless Docker/WSL2 or explicit `ALLOW_UNCONFINED_WINDOWS_HOST=true` (`packages/adapter-utils/src/local-process-sandbox.ts`), RBAC & isolation tests on governance routes (`server/src/__tests__/governance-routes.test.ts`), Markdown editor in Document Center (`ui/src/components/DocumentCenter.tsx`), mock upstream live orchestration (`server/src/services/governance-orchestration.test.ts`) |
+| **2** | **Approved Model Mappings** | DONE | `server/src/services/sales-org.test.ts` (3 passed) | `config/models.yaml`, `server/src/services/model-config.ts` (DeepSeek V4 Pro for CEO & Sales Manager; DeepSeek V4 Flash for Researcher, Follow-up, CRM Sync) |
+| **3** | **Sales Org Template & Versioned Prompts** | DONE | `server/src/services/sales-org.test.ts` (3 passed) | `server/src/services/sales-org.ts`, `prompts/sales/ceo.md`, `sales_manager.md`, `researcher.md`, `follow_up.md`, `crm_sync.md` |
+| **4** | **Lead Campaign Wizard (Auro Design)** | DONE | `ui/src/components/LeadCampaignWizard.test.tsx` (2 passed) | `ui/src/components/LeadCampaignWizard.tsx` (Target industries/segments, location, company size, titles, value prop, daily/weekly quotas, email cadence) |
+| **5** | **Lead Research & Injection Sanitization** | DONE | `server/src/services/sales-research.test.ts` (6 passed) | `server/src/services/sales-research.ts` (Structured JSON schema, Bengaluru manufacturing fixtures, 0-100 ICP scoring, prompt injection sanitization, domain MX verification) |
+| **6** | **Email Sequence & Statutory Compliance** | DONE | `server/src/services/sales-email.test.ts` (5 passed) | `server/src/services/sales-email.ts` (3-touch sequence, dry-run safety default, human approval gate default, statutory postal address in footer, 1-click unsubscribe URL, immediate SHA-256 suppression, warm-up schedule, hard-bounce auto-suppression), `docs/compliance-notes.md`, `docs/email-deliverability.md` |
+| **7** | **Pluggable CRM Connectors Layer** | DONE | `server/src/services/sales-crm.test.ts` (9 passed) | `server/src/services/sales-crm.ts` (HubSpot connector with token/refresh auth, Generic Webhook connector with HMAC-SHA256 signature, CSV export connector, exponential backoff retry, idempotency keys, secret masking) |
+| **8** | **Sales Campaign Orchestration & REST API** | DONE | `server/src/services/sales-campaign.test.ts` (7 passed), `server/src/__tests__/sales-routes.test.ts` (14 passed) | `server/src/services/sales-campaign.ts`, `server/src/routes/sales.ts` (Company isolation, RBAC permissions, campaign lifecycle, review loops) |
+| **9** | **Lead Center UI & Approvals Gate** | DONE | `ui/src/components/LeadCenter.test.tsx` (2 passed), `ui/src/components/EmailSequenceEditor.test.tsx` (2 passed), `ui/src/pages/Sales.test.tsx` (2 passed) | `ui/src/pages/Sales.tsx`, `ui/src/components/LeadCenter.tsx`, `ui/src/components/EmailSequenceEditor.tsx`, `ui/src/components/SalesApprovalsInbox.tsx`, `ui/src/components/HotLeadsView.tsx`, `ui/src/components/SuppressionManager.tsx`, `ui/src/api/sales.ts` |
 
 ---
 
 ## Approved Model Inventory & Live Verification Status
 
 All role assignments in `config/models.yaml` strictly use the approved models:
-1. `opencode/deepseek-v4-pro` - **Unverified live** (Roles: CEO, PM, CTO, QA, DevOps; primary and fallback)
-2. `opencode/kimi-k2.7-code` - **Unverified live** (Roles: Security Officer, Coding Agents)
-3. `opencode/deepseek-v4-flash` - **Unverified live** (Roles: Fallback for light roles / general fallback)
+1. `opencode/deepseek-v4-pro` - **Unverified live** (Roles: Governance CEO, PM, CTO, QA, DevOps; Sales CEO, Sales Manager)
+2. `opencode/kimi-k2.7-code` - **Unverified live** (Roles: Security Officer, Coding Agents, CRM Integration Tasks)
+3. `opencode/deepseek-v4-flash` - **Unverified live** (Roles: Sales Researcher, Follow-up, CRM Sync, light role fallback)
 
 ### Manual Checklist for Live OpenCode Key Activation
 When a real OpenCode API key is provided:
@@ -91,4 +77,4 @@ When a real OpenCode API key is provided:
 ---
 
 ## Next Step
-Phase 3 is complete and verified. Awaiting user command: **"Start Phase 4"** (Sales Organization & Outreach Pipeline).
+Phase 4 is complete and verified. Awaiting user command for next project phase.

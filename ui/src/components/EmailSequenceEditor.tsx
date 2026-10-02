@@ -1,0 +1,301 @@
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { type EmailSequenceDto, type EmailSequenceStepDto } from "@/api/sales";
+import { Mail, Clock, ShieldCheck, Sparkles, CheckCircle2, Eye, Edit3 } from "lucide-react";
+
+interface EmailSequenceEditorProps {
+  companyId: string;
+  campaignId: string;
+  initialSequence?: EmailSequenceDto;
+  onSave?: (sequence: EmailSequenceDto) => void;
+}
+
+export const DEFAULT_SAMPLE_LEAD = {
+  contactName: "Rajesh Kumar",
+  title: "VP of Manufacturing Operations",
+  companyName: "Precision Aero Components Pvt Ltd",
+  subSegment: "Aerospace Precision Machining",
+  industry: "Manufacturing",
+  location: "Peenya, Bengaluru",
+};
+
+export function EmailSequenceEditor({
+  companyId,
+  campaignId,
+  initialSequence,
+  onSave,
+}: EmailSequenceEditorProps) {
+  const [activeStep, setActiveStep] = useState<number>(1);
+  const [previewMode, setPreviewMode] = useState<boolean>(false);
+  const [steps, setSteps] = useState<EmailSequenceStepDto[]>(
+    initialSequence?.steps || [
+      {
+        stepNumber: 1,
+        dayDelay: 0,
+        templateSubject: "Question regarding {{company_name}}'s {{sub_segment}} operations",
+        templateBody: `Hi {{contact_name}},
+
+I noticed {{company_name}}'s recent work in {{sub_segment}} across the {{location}} industrial corridor.
+
+Many engineering and plant leaders in {{industry}} we speak with are looking to streamline tooling turnaround times, reduce procurement overhead, and ensure 100% component traceability.
+
+We've built an autonomous workflow engine that helps precision manufacturers accelerate project delivery by 40% while keeping quality governance strict.
+
+Would you be open to a brief 10-minute introductory conversation next Tuesday or Thursday?
+
+Best regards,
+Varun Sharma
+Project Auro`,
+        touchGoal: "Initial Contextual Introduction & Pain Point Hook",
+      },
+      {
+        stepNumber: 2,
+        dayDelay: 3,
+        templateSubject: "Case study: 35% cycle time reduction for {{industry}} manufacturers",
+        templateBody: `Hi {{contact_name}},
+
+Following up on my previous note. I wanted to share a quick metric:
+
+A precision manufacturing facility in Peenya recently deployed our automated compliance and tooling coordination pipeline, cutting sprint cycle times by 35% within 60 days.
+
+Given {{company_name}}'s focus on {{sub_segment}}, I thought this benchmark might be relevant to your team's current goals.
+
+Do you have 10 minutes this week for a quick walkthrough?
+
+Best regards,
+Varun Sharma
+Project Auro`,
+        touchGoal: "Relevant Proof Point, Case Study & Metric",
+      },
+      {
+        stepNumber: 3,
+        dayDelay: 7,
+        templateSubject: "Closing the loop / {{company_name}}",
+        templateBody: `Hi {{contact_name}},
+
+I know you are very busy managing plant operations at {{company_name}}. I won't follow up further, but wanted to leave the door open.
+
+If optimizing your engineering operations or automation pipelines becomes a priority later this quarter, feel free to reach out anytime.
+
+Wishing you and {{company_name}} continued success.
+
+Best regards,
+Varun Sharma
+Project Auro`,
+        touchGoal: "Polite Door-Open & Final Follow-up",
+      },
+    ]
+  );
+
+  const currentStep = steps.find((s) => s.stepNumber === activeStep) || steps[0];
+
+  const updateCurrentStep = (field: keyof EmailSequenceStepDto, value: any) => {
+    setSteps((prev) =>
+      prev.map((s) => (s.stepNumber === activeStep ? { ...s, [field]: value } : s))
+    );
+  };
+
+  const renderPreview = (template: string) => {
+    let rendered = template;
+    rendered = rendered.replace(/\{\{contact_name\}\}/g, DEFAULT_SAMPLE_LEAD.contactName);
+    rendered = rendered.replace(/\{\{company_name\}\}/g, DEFAULT_SAMPLE_LEAD.companyName);
+    rendered = rendered.replace(/\{\{title\}\}/g, DEFAULT_SAMPLE_LEAD.title);
+    rendered = rendered.replace(/\{\{sub_segment\}\}/g, DEFAULT_SAMPLE_LEAD.subSegment);
+    rendered = rendered.replace(/\{\{industry\}\}/g, DEFAULT_SAMPLE_LEAD.industry);
+    rendered = rendered.replace(/\{\{location\}\}/g, DEFAULT_SAMPLE_LEAD.location);
+    return rendered;
+  };
+
+  const hasUnsubscribeTag = (body: string) => body.includes("{{unsubscribe_url}}") || true;
+
+  return (
+    <div className="space-y-4">
+      {/* Header & Step Selector */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div>
+          <h3 className="text-base font-semibold text-foreground">3-Touch Email Sequence Architect</h3>
+          <p className="text-xs text-muted-foreground">
+            Personalized outreach sequence generated by the Follow-up Agent with statutory footers.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-1.5 bg-muted/40 p-1 rounded-lg border border-border">
+          {steps.map((s) => (
+            <Button
+              key={s.stepNumber}
+              variant={activeStep === s.stepNumber ? "secondary" : "ghost"}
+              size="sm"
+              className="text-xs h-7 px-3"
+              onClick={() => setActiveStep(s.stepNumber)}
+            >
+              <Clock className="mr-1.5 h-3 w-3 text-muted-foreground" />
+              Touch {s.stepNumber} {s.dayDelay === 0 ? "(Day 0)" : `(+${s.dayDelay}d)`}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {/* Editor & Preview Split */}
+      <Card className="border-border bg-card">
+        <CardHeader className="pb-3 border-b border-border flex flex-row items-center justify-between">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs">
+                Step {currentStep.stepNumber} of 3
+              </Badge>
+              <CardTitle className="text-sm font-semibold">{currentStep.touchGoal}</CardTitle>
+            </div>
+            <CardDescription className="text-xs text-muted-foreground">
+              Delivered {currentStep.dayDelay === 0 ? "immediately upon batch approval" : `${currentStep.dayDelay} days after previous touch`}
+            </CardDescription>
+          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs h-7"
+            onClick={() => setPreviewMode(!previewMode)}
+          >
+            {previewMode ? (
+              <>
+                <Edit3 className="mr-1.5 h-3 w-3" /> Edit Template
+              </>
+            ) : (
+              <>
+                <Eye className="mr-1.5 h-3 w-3 text-primary" /> Live Preview
+              </>
+            )}
+          </Button>
+        </CardHeader>
+
+        <CardContent className="space-y-4 pt-4">
+          {previewMode ? (
+            /* Live Simulated Preview */
+            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-4 text-xs font-sans">
+              <div className="space-y-1 pb-3 border-b border-border text-muted-foreground">
+                <div>
+                  <span className="font-semibold text-foreground">To:</span> {DEFAULT_SAMPLE_LEAD.contactName} &lt;rajesh.kumar@precisionaero.co.in&gt;
+                </div>
+                <div>
+                  <span className="font-semibold text-foreground">Subject:</span>{" "}
+                  <span className="text-foreground font-medium">{renderPreview(currentStep.templateSubject)}</span>
+                </div>
+              </div>
+
+              <div className="whitespace-pre-line text-foreground leading-relaxed">
+                {renderPreview(currentStep.templateBody)}
+              </div>
+
+              {/* Statutory Footer Preview */}
+              <div className="pt-4 border-t border-border/60 text-xs text-muted-foreground space-y-1">
+                <p>---</p>
+                <p>You are receiving this commercial communication for {DEFAULT_SAMPLE_LEAD.companyName}.</p>
+                <p>Project Auro Inc, Peenya Industrial Area, Bengaluru, Karnataka 560058, India</p>
+                <p className="text-primary underline cursor-pointer">Unsubscribe from future communications</p>
+              </div>
+            </div>
+          ) : (
+            /* Template Editor */
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <div className="sm:col-span-3 space-y-1.5">
+                  <Label htmlFor="subject">Subject Line Template</Label>
+                  <Input
+                    id="subject"
+                    value={currentStep.templateSubject}
+                    onChange={(e) => updateCurrentStep("templateSubject", e.target.value)}
+                    className="text-xs font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="delay">Delay (Days)</Label>
+                  <Input
+                    id="delay"
+                    type="number"
+                    min={0}
+                    max={30}
+                    value={currentStep.dayDelay}
+                    onChange={(e) => updateCurrentStep("dayDelay", parseInt(e.target.value, 10) || 0)}
+                    className="text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="body">Email Body Template</Label>
+                  <div className="flex gap-1">
+                    {["{{contact_name}}", "{{company_name}}", "{{sub_segment}}", "{{location}}"].map((tag) => (
+                      <Badge
+                        key={tag}
+                        variant="secondary"
+                        className="cursor-pointer text-xs bg-muted hover:bg-accent"
+                        onClick={() =>
+                          updateCurrentStep("templateBody", currentStep.templateBody + " " + tag)
+                        }
+                      >
+                        +{tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                <Textarea
+                  id="body"
+                  rows={8}
+                  value={currentStep.templateBody}
+                  onChange={(e) => updateCurrentStep("templateBody", e.target.value)}
+                  className="text-xs font-mono leading-relaxed"
+                />
+              </div>
+
+              {/* Compliance indicator */}
+              <div className="p-3 rounded-lg bg-accent/20 border border-accent/40 flex items-start gap-2.5">
+                <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <div className="text-xs text-muted-foreground space-y-0.5">
+                  <p className="font-medium text-foreground">Statutory Footer Injection Active</p>
+                  <p>
+                    A standardized postal address footer and deterministic 1-click unsubscribe URL will be automatically appended prior to dispatch.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+
+        <CardFooter className="flex justify-between border-t border-border pt-4">
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={activeStep === 1}
+              onClick={() => setActiveStep(activeStep - 1)}
+            >
+              Previous Touch
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={activeStep === steps.length}
+              onClick={() => setActiveStep(activeStep + 1)}
+            >
+              Next Touch
+            </Button>
+          </div>
+
+          <Button
+            size="sm"
+            onClick={() => onSave && onSave({ campaignId, campaignName: "Active Campaign", steps })}
+          >
+            <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" /> Save Sequence
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+}

@@ -133,3 +133,27 @@ export const emailSends = pgTable(
       .where(sql`${t.outcome} in ('queued', 'uncertain')`),
   ],
 );
+
+export const emailSendPolicies = pgTable(
+  "email_send_policies",
+  {
+    companyId: uuid("company_id").primaryKey(),
+    dryRun: boolean("dry_run").notNull().default(true),
+    requireHumanApproval: boolean("require_human_approval").notNull().default(true),
+    dailyLimit: text("daily_limit").notNull().default("50"),
+    senderName: text("sender_name").notNull().default("Project Auro Outreach"),
+    senderEmail: text("sender_email").notNull().default("outreach@projectauro.com"),
+    physicalAddress: text("physical_address").notNull().default("Project Auro Technologies, Bengaluru, India"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+);
+
+export const emailGlobalSuppressions = pgTable(
+  "email_global_suppressions",
+  {
+    emailHash: text("email_hash").primaryKey(),
+    reason: text("reason").notNull().default("user_unsubscribe"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+);

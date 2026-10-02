@@ -189,4 +189,25 @@ describe("Governance Orchestration Service", () => {
     expect(ceoReview).toBeDefined();
     expect(ceoReview?.approved).toBe(true);
   });
+
+  it("orchestrates kickoff in LIVE mode (isDemo: false) without demo watermark", async () => {
+    const { mockDb, mockOrgSvc, mockGoalSvc, mockIssueSvc } = createMockDeps();
+    const service = governanceOrchestrationService(mockDb, {
+      orgSvc: mockOrgSvc,
+      goalSvc: mockGoalSvc,
+      issueSvc: mockIssueSvc,
+    });
+
+    const liveBrief = { ...brief, isDemo: false };
+    const result = await service.submitKickoffBrief("comp-1", liveBrief);
+
+    expect(result.executionMode).toBe("live");
+    expect(result.status).toBe("completed");
+
+    for (const kind of GOVERNANCE_DOCUMENT_KINDS) {
+      const doc = result.documents[kind];
+      expect(doc.isValid).toBe(true);
+      expect(doc.content).not.toContain("Demo Mode");
+    }
+  });
 });

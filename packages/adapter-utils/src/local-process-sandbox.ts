@@ -338,6 +338,55 @@ server.listen(${SANDBOX_PROXY_PORT}, "127.0.0.1", () => {
   return source.trimStart();
 }
 
+export interface WindowsSandboxPolicy {
+  isolationMode: "docker" | "wsl2" | "disabled" | "unconfined_admin_opt_in";
+  isAllowed: boolean;
+  rejectionReason?: string;
+}
+
+export function resolveWindowsSandboxPolicy(options?: {
+  configuredMode?: "docker" | "wsl2" | "host";
+  adminOptIn?: boolean;
+  env?: Record<string, string | undefined>;
+}): WindowsSandboxPolicy {
+  const env = options?.env ?? process.env;
+  const adminOptIn = options?.adminOptIn ?? (env.ALLOW_UNCONFINED_WINDOWS_HOST === "true" || env.ALLOW_UNCONFINED_WINDOWS_HOST === "1");
+  const configuredMode = options?.configuredMode;
+
+  if (configuredMode === "docker" || configuredMode === "wsl2") {
+    return {
+      isolationMode: configuredMode,
+      isAllowed: true,
+    };
+  }
+
+  if (adminOptIn) {
+    return {
+      isolationMode: "unconfined_admin_opt_in",
+      isAllowed: true,
+    };
+  }
+
+  return {
+    isolationMode: "disabled",
+    isAllowed: false,
+    rejectionReason:
+      "Windows host isolation error: Unconfined host process execution is disabled by default for code-writing and tool-running agents on Windows. Configure Docker or WSL2 isolation mode, or explicitly enable the admin opt-in (ALLOW_UNCONFINED_WINDOWS_HOST=true).",
+  };
+}
+
+export function assertWindowsSandboxExecutionAllowed(options?: {
+  configuredMode?: "docker" | "wsl2" | "host";
+  adminOptIn?: boolean;
+  env?: Record<string, string | undefined>;
+}): void {
+  if (process.platform !== "win32") return;
+  const policy = resolveWindowsSandboxPolicy(options);
+  if (!policy.isAllowed) {
+    throw new Error(policy.rejectionReason);
+  }
+}
+
 export async function buildLocalProcessSandboxSpawnTarget(input: {
   executable: string;
   args: string[];
