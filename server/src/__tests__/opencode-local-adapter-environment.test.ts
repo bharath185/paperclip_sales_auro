@@ -32,8 +32,10 @@ describe("opencode_local environment diagnostics", () => {
   it("treats an empty OPENAI_API_KEY override as missing", async () => {
     const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-opencode-env-empty-key-"));
     // This case tests environment precedence, not model-discovery retry delays.
-    const fakeOpencode = path.join(cwd, "opencode");
-    await fs.writeFile(fakeOpencode, "#!/bin/sh\necho openai/test-model\n", { mode: 0o755 });
+    const isWin = process.platform === "win32";
+    const fakeOpencode = isWin ? path.join(cwd, "opencode.cmd") : path.join(cwd, "opencode");
+    const script = isWin ? "@echo off\r\necho openai/test-model\r\n" : "#!/bin/sh\necho openai/test-model\n";
+    await fs.writeFile(fakeOpencode, script, { mode: 0o755 });
     const originalOpenAiKey = process.env.OPENAI_API_KEY;
     process.env.OPENAI_API_KEY = "sk-host-value";
 
@@ -67,14 +69,22 @@ describe("opencode_local environment diagnostics", () => {
   it("classifies ProviderModelNotFoundError probe output as model-unavailable warning", async () => {
     const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-opencode-env-probe-cwd-"));
     const binDir = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-opencode-env-probe-bin-"));
-    const fakeOpencode = path.join(binDir, "opencode");
-    const script = [
-      "#!/bin/sh",
-      "echo 'ProviderModelNotFoundError: ProviderModelNotFoundError' 1>&2",
-      "echo 'data: { providerID: \"openai\", modelID: \"gpt-5.3-codex\", suggestions: [] }' 1>&2",
-      "exit 1",
-      "",
-    ].join("\n");
+    const isWin = process.platform === "win32";
+    const fakeOpencode = isWin ? path.join(binDir, "opencode.cmd") : path.join(binDir, "opencode");
+    const script = isWin
+      ? [
+          "@echo off",
+          "echo ProviderModelNotFoundError: ProviderModelNotFoundError 1>&2",
+          "echo data: { providerID: \"openai\", modelID: \"gpt-5.3-codex\", suggestions: [] } 1>&2",
+          "exit /b 1",
+        ].join("\r\n")
+      : [
+          "#!/bin/sh",
+          "echo 'ProviderModelNotFoundError: ProviderModelNotFoundError' 1>&2",
+          "echo 'data: { providerID: \"openai\", modelID: \"gpt-5.3-codex\", suggestions: [] }' 1>&2",
+          "exit 1",
+          "",
+        ].join("\n");
 
     try {
       await fs.writeFile(fakeOpencode, script, "utf8");
