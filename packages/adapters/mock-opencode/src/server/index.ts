@@ -7,6 +7,10 @@ import { type } from "./index.js";
 
 // Mock OpenCode model IDs that are available
 const MOCK_MODELS = [
+  "opencode/claude-sonnet-5",
+  "opencode/gpt-6-luna",
+  "opencode/deepseek-r1",
+  "opencode/deepseek-v3",
   "openai/gpt-4o",
   "openai/gpt-4-turbo",
   "openai/gpt-3.5-turbo",
@@ -26,21 +30,30 @@ const QUOTA_WARN_THRESHOLD = 80; // 80% warning threshold
 
 // Role-based model mapping for fallback (inlined from config/models.yaml)
 const MODEL_MAPPINGS: Record<string, { primary: string; fallback: string }> = {
-  default: { primary: "openai/gpt-4o", fallback: "openai/gpt-4-turbo" },
-  governance: { primary: "anthropic/claude-3-opus-20240229", fallback: "anthropic/claude-3-sonnet-20240229" },
-  sales: { primary: "openai/gpt-4-turbo", fallback: "openai/gpt-4o" },
-  developer: { primary: "openai/gpt-4o", fallback: "anthropic/claude-3-sonnet-20240229" },
+  default: { primary: "opencode/claude-sonnet-5", fallback: "opencode/deepseek-r1" },
+  governance: { primary: "opencode/deepseek-r1", fallback: "opencode/deepseek-v3" },
+  sales: { primary: "opencode/gpt-6-luna", fallback: "opencode/deepseek-v3" },
+  developer: { primary: "opencode/claude-sonnet-5", fallback: "opencode/deepseek-v3" },
+  // Backward-compatible fallback mappings for test fixtures
+  "legacy-default": { primary: "openai/gpt-4o", fallback: "openai/gpt-4-turbo" },
+  "legacy-governance": { primary: "anthropic/claude-3-opus-20240229", fallback: "anthropic/claude-3-sonnet-20240229" },
 };
 
 function getFallbackModel(primaryModel: string, role: string = "default"): string | null {
   const mapping = MODEL_MAPPINGS[role] || MODEL_MAPPINGS.default;
-  if (mapping.primary === primaryModel) {
+  if (mapping && mapping.primary === primaryModel) {
     return mapping.fallback;
   }
   // Check default mapping
   const defaultMapping = MODEL_MAPPINGS.default;
   if (defaultMapping.primary === primaryModel) {
     return defaultMapping.fallback;
+  }
+  // Check legacy mappings for backward compatibility
+  for (const m of Object.values(MODEL_MAPPINGS)) {
+    if (m.primary === primaryModel) {
+      return m.fallback;
+    }
   }
   return null;
 }

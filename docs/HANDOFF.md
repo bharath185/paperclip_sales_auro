@@ -1,9 +1,8 @@
 # Handoff Document
 
 ## Branch Information
-- **Branch**: `phase-1-2-auro-ui`
+- **Branch**: `phase-3-governance`
 - **Base Commit**: `3166e93a7` (upstream Paperclip)
-- **Latest Commit**: `47f553cbb` (feat: Phase 1-2 - OpenCode provider integration and Master Setup wizard demo mode)
 - **Remote**: `https://github.com/bharath185/project_auro_opencode.git`
 
 ## How to Run and Test
@@ -22,7 +21,20 @@ pnpm build         # Build all packages
 
 ### Run Tests
 ```bash
-# Server tests (require embedded Postgres - WSL2/Docker recommended on Windows)
+# Phase 3 Governance Server tests
+pnpm --filter @paperclipai/server exec vitest run src/__tests__/governance-routes.test.ts
+pnpm --filter @paperclipai/server exec vitest run src/services/governance-org.test.ts
+pnpm --filter @paperclipai/server exec vitest run src/services/governance-orchestration.test.ts
+pnpm --filter @paperclipai/server exec vitest run src/services/model-fallback.test.ts
+
+# Phase 3 Governance UI tests
+pnpm --filter @paperclipai/ui exec vitest run src/components/ProjectKickoffWizard.test.tsx
+pnpm --filter @paperclipai/ui exec vitest run src/components/GovernancePromptEditor.test.tsx
+
+# Teams Catalog tests
+pnpm --filter @paperclipai/teams-catalog run test
+
+# Server Phase 1-2 tests
 pnpm --filter @paperclipai/server exec vitest run src/__tests__/ai-connections.test.ts
 pnpm --filter @paperclipai/server exec vitest run src/__tests__/email-channels.integration.test.ts
 pnpm --filter @paperclipai/server exec vitest run src/__tests__/opencode-provider-key.test.ts
@@ -30,18 +42,12 @@ pnpm --filter @paperclipai/server exec vitest run src/__tests__/agent-key-manage
 pnpm --filter @paperclipai/server exec vitest run src/__tests__/rbac-tenant-isolation.test.ts
 pnpm --filter @paperclipai/server exec vitest run src/__tests__/opencode-adapter-hot-reload.test.ts
 pnpm --filter @paperclipai/server exec vitest run src/__tests__/mock-adapter-production-isolation.test.ts
-pnpm --filter @paperclipai/server exec vitest run src/services/model-fallback.test.ts
 
 # Adapter and Utils tests
 pnpm --filter @paperclipai/adapter-mock-opencode exec vitest run src/server/fallback.test.ts
 pnpm vitest run packages/adapter-utils/src/sandbox-policy-default.test.ts
 
-# UI tests
-pnpm --filter @paperclipai/ui exec vitest run src/pages/InviteLanding.test.tsx -t "falls back to the generated company icon"
-pnpm --filter @paperclipai/ui exec vitest run src/components/OnboardingWizard.test.tsx
-pnpm --filter @paperclipai/ui exec vitest run src/components/QuotaWarningBanner.test.tsx
-
-# Typecheck & Lint
+# Typecheck & Token Gates
 pnpm --filter @paperclipai/server exec tsc --noEmit
 pnpm --filter @paperclipai/ui exec tsc --noEmit
 pnpm check:token-gates
@@ -53,19 +59,19 @@ pnpm check:token-gates
 - `opencode-local-adapter-environment.test.ts`: 1 pre-existing failure on upstream `3166e93a7`
 - Embedded Postgres issues: Run server tests in WSL2 or Docker
 
-### Docker for Server Tests
-```dockerfile
-FROM node:24-alpine
-WORKDIR /app
-COPY . .
-RUN pnpm install
-RUN pnpm --filter @paperclipai/server exec vitest run
-```
-
 ## DONE Items with Test File + Pass Count
 
 | Item | Test File | Pass Count | Status |
 |------|-----------|------------|--------|
+| **Phase 3: Governance Org REST Routes** | `server/src/__tests__/governance-routes.test.ts` | 4 passed | DONE |
+| **Phase 3: Governance Org Hierarchy & Provisioning** | `server/src/services/governance-org.test.ts` | 3 passed | DONE |
+| **Phase 3: Governance Document Orchestration** | `server/src/services/governance-orchestration.test.ts` | 1 passed | DONE |
+| **Phase 3: Shipped Teams Catalog Template** | `packages/teams-catalog/src/shipped-catalog.test.ts` | 7 passed | DONE |
+| **Phase 3: Teams Catalog Builder** | `packages/teams-catalog/src/catalog-builder.test.ts` | 3 passed | DONE |
+| **Phase 3: UI Project Kickoff Wizard** | `ui/src/components/ProjectKickoffWizard.test.tsx` | 3 passed | DONE |
+| **Phase 3: UI Governance Prompt Editor** | `ui/src/components/GovernancePromptEditor.test.tsx` | 3 passed | DONE |
+| **Phase 3: Design token check** | `scripts/check-token-gates.mjs` | CLEAN (4/4 gates) | DONE |
+| **Phase 3: Server & UI TypeScript compilation** | `server/tsconfig.json`, `ui/tsconfig.json` | 0 errors | DONE |
 | adapter (mock OpenCode) | `packages/adapters/mock-opencode/src/server/fallback.test.ts` | 8 passed | DONE |
 | wizard (Master Setup + First-run e2e) | `ui/src/components/OnboardingWizard.test.tsx` | 94 passed | DONE |
 | key update/revoke/hot-reload (agent API) | `server/src/__tests__/agent-key-management.test.ts` | 8 passed | DONE |
@@ -78,9 +84,6 @@ RUN pnpm --filter @paperclipai/server exec vitest run
 | Mock adapter production isolation | `server/src/__tests__/mock-adapter-production-isolation.test.ts` | 3 passed | DONE |
 | Sandbox default policy & blocking | `packages/adapter-utils/src/sandbox-policy-default.test.ts` | 9 passed | DONE |
 | 80%/95% quota warning banner component | `ui/src/components/QuotaWarningBanner.test.tsx` | 4 passed | DONE |
-| Design token check | `scripts/check-token-gates.mjs` | CLEAN (4/4 gates) | DONE |
-| Server & UI TypeScript compilation | `server/tsconfig.json`, `ui/tsconfig.json` | 0 errors | DONE |
-| UI Client & Server build | `pnpm --filter @paperclipai/ui build`, `@paperclipai/server` | 0 errors | DONE |
 
 ## PARTIAL / NOT PROVEN Items
 

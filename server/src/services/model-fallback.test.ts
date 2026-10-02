@@ -41,29 +41,29 @@ describe("Model Fallback Service", () => {
   describe("resolveEffectiveModel", () => {
     it("resolves role-specific primary and fallback models from config/models.yaml", () => {
       const gov = resolveEffectiveModel("governance");
-      expect(gov.primaryModel).toBe("anthropic/claude-3-opus-20240229");
-      expect(gov.fallbackModel).toBe("anthropic/claude-3-sonnet-20240229");
+      expect(gov.primaryModel).toBe("opencode/deepseek-r1");
+      expect(gov.fallbackModel).toBe("opencode/deepseek-v3");
       expect(gov.quotaWarningThreshold).toBe(80);
 
       const sales = resolveEffectiveModel("sales");
-      expect(sales.primaryModel).toBe("openai/gpt-4-turbo");
-      expect(sales.fallbackModel).toBe("openai/gpt-4o");
+      expect(sales.primaryModel).toBe("opencode/gpt-6-luna");
+      expect(sales.fallbackModel).toBe("opencode/deepseek-v3");
 
       const dev = resolveEffectiveModel("developer");
-      expect(dev.primaryModel).toBe("openai/gpt-4o");
-      expect(dev.fallbackModel).toBe("anthropic/claude-3-sonnet-20240229");
+      expect(dev.primaryModel).toBe("opencode/claude-sonnet-5");
+      expect(dev.fallbackModel).toBe("opencode/deepseek-v3");
     });
 
     it("falls back to default role mapping for unknown roles", () => {
       const unknown = resolveEffectiveModel("unknown_role");
-      expect(unknown.primaryModel).toBe("openai/gpt-4o");
-      expect(unknown.fallbackModel).toBe("openai/gpt-4-turbo");
+      expect(unknown.primaryModel).toBe("opencode/claude-sonnet-5");
+      expect(unknown.fallbackModel).toBe("opencode/deepseek-r1");
     });
 
     it("honors requested custom primary model", () => {
       const custom = resolveEffectiveModel("governance", "custom-model");
       expect(custom.primaryModel).toBe("custom-model");
-      expect(custom.fallbackModel).toBe("anthropic/claude-3-sonnet-20240229");
+      expect(custom.fallbackModel).toBe("opencode/deepseek-v3");
     });
   });
 
@@ -76,11 +76,11 @@ describe("Model Fallback Service", () => {
       });
 
       expect(result.result).toBe("success-output");
-      expect(result.modelUsed).toBe("anthropic/claude-3-opus-20240229");
+      expect(result.modelUsed).toBe("opencode/deepseek-r1");
       expect(result.wasFallback).toBe(false);
       expect(result.retriesAttempted).toBe(0);
       expect(execute).toHaveBeenCalledTimes(1);
-      expect(execute).toHaveBeenCalledWith("anthropic/claude-3-opus-20240229", false);
+      expect(execute).toHaveBeenCalledWith("opencode/deepseek-r1", false);
     });
 
     it("retries on 429 and succeeds on second attempt", async () => {
@@ -104,7 +104,7 @@ describe("Model Fallback Service", () => {
       });
 
       expect(result.result).toBe("success-after-retry");
-      expect(result.modelUsed).toBe("anthropic/claude-3-opus-20240229");
+      expect(result.modelUsed).toBe("opencode/deepseek-r1");
       expect(result.wasFallback).toBe(false);
       expect(result.retriesAttempted).toBe(1);
       expect(execute).toHaveBeenCalledTimes(2);
@@ -131,12 +131,12 @@ describe("Model Fallback Service", () => {
       });
 
       expect(result.result).toBe("success-from-fallback");
-      expect(result.modelUsed).toBe("anthropic/claude-3-sonnet-20240229");
+      expect(result.modelUsed).toBe("opencode/deepseek-v3");
       expect(result.wasFallback).toBe(true);
       expect(result.retriesAttempted).toBe(1);
       expect(onFallback).toHaveBeenCalledWith(
-        "anthropic/claude-3-opus-20240229",
-        "anthropic/claude-3-sonnet-20240229",
+        "opencode/deepseek-r1",
+        "opencode/deepseek-v3",
         expect.objectContaining({ status: 429 }),
       );
     });
@@ -160,11 +160,11 @@ describe("Model Fallback Service", () => {
       });
 
       expect(result.result).toBe("fallback-response");
-      expect(result.modelUsed).toBe("openai/gpt-4o");
+      expect(result.modelUsed).toBe("opencode/deepseek-v3");
       expect(result.wasFallback).toBe(true);
       expect(onFallback).toHaveBeenCalledWith(
-        "openai/gpt-4-turbo",
-        "openai/gpt-4o",
+        "opencode/gpt-6-luna",
+        "opencode/deepseek-v3",
         expect.objectContaining({ status: 500 }),
       );
     });

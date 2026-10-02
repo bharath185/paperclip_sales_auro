@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "packageName": "@paperclipai/teams-catalog",
   "packageVersion": "0.1.0",
-  "generatedAt": "2026-09-30T18:42:46.371Z",
+  "generatedAt": "2026-10-02T05:56:53.245Z",
   "teams": [
     {
       "id": "paperclipai:bundled:company-defaults:core-exec-team",
@@ -133,6 +133,161 @@
       "trustLevel": "markdown_only",
       "compatibility": "compatible",
       "contentHash": "sha256:91b498249140444f185aab8576df0ed017fd051491e6597da547c41c0381ca24"
+    },
+    {
+      "id": "paperclipai:bundled:governance:project-governance",
+      "key": "paperclipai/bundled/governance/project-governance",
+      "kind": "bundled",
+      "category": "governance",
+      "slug": "project-governance",
+      "name": "Project Governance",
+      "description": "Autonomous project governance organization consisting of CEO, CTO, PM, QA, DevOps, and Security agents for complete project document generation and review.",
+      "path": "catalog/bundled/governance/project-governance",
+      "entrypoint": "TEAM.md",
+      "schema": "agentcompanies/v1",
+      "defaultInstall": false,
+      "recommendedForCompanyTypes": [
+        "software",
+        "startup",
+        "enterprise",
+        "governance"
+      ],
+      "tags": [
+        "governance",
+        "executive",
+        "architecture",
+        "security",
+        "qa",
+        "devops"
+      ],
+      "counts": {
+        "agents": 6,
+        "projects": 1,
+        "tasks": 0,
+        "routines": 0,
+        "localSkills": 0,
+        "catalogSkills": 4,
+        "externalSkillSources": 0
+      },
+      "rootAgentSlugs": [
+        "ceo"
+      ],
+      "agentSlugs": [
+        "ceo",
+        "cto",
+        "devops",
+        "pm",
+        "qa",
+        "security"
+      ],
+      "projectSlugs": [
+        "project-governance"
+      ],
+      "requiredSkills": [
+        {
+          "type": "catalog",
+          "ref": "doc-maintenance",
+          "agentSlugs": [
+            "cto",
+            "devops",
+            "pm",
+            "qa",
+            "security"
+          ],
+          "resolved": true,
+          "catalogSkillId": "paperclipai:bundled:docs:doc-maintenance",
+          "catalogSkillKey": "paperclipai/bundled/docs/doc-maintenance"
+        },
+        {
+          "type": "catalog",
+          "ref": "issue-triage",
+          "agentSlugs": [
+            "ceo"
+          ],
+          "resolved": true,
+          "catalogSkillId": "paperclipai:bundled:paperclip-operations:issue-triage",
+          "catalogSkillKey": "paperclipai/bundled/paperclip-operations/issue-triage"
+        },
+        {
+          "type": "catalog",
+          "ref": "qa-acceptance",
+          "agentSlugs": [
+            "qa"
+          ],
+          "resolved": true,
+          "catalogSkillId": "paperclipai:bundled:quality:qa-acceptance",
+          "catalogSkillKey": "paperclipai/bundled/quality/qa-acceptance"
+        },
+        {
+          "type": "catalog",
+          "ref": "task-planning",
+          "agentSlugs": [
+            "ceo",
+            "cto",
+            "devops",
+            "pm",
+            "security"
+          ],
+          "resolved": true,
+          "catalogSkillId": "paperclipai:bundled:paperclip-operations:task-planning",
+          "catalogSkillKey": "paperclipai/bundled/paperclip-operations/task-planning"
+        }
+      ],
+      "envInputs": [],
+      "sourceRefs": [],
+      "files": [
+        {
+          "path": "TEAM.md",
+          "kind": "team",
+          "sizeBytes": 2058,
+          "sha256": "360da8a5d946347a7e322af78a9f126c5a99096ac970124d6f6d82d8072b9835"
+        },
+        {
+          "path": "agents/ceo/AGENTS.md",
+          "kind": "agent",
+          "sizeBytes": 1092,
+          "sha256": "482261715c75a4dc20b48ca6bb0def1b1eb14eb59ecf991ff753f747c0a146c7"
+        },
+        {
+          "path": "agents/cto/AGENTS.md",
+          "kind": "agent",
+          "sizeBytes": 620,
+          "sha256": "70d741a12240dddcffcfb9349b918b097afeeb00495c908fdd61edd48b5db9b1"
+        },
+        {
+          "path": "agents/devops/AGENTS.md",
+          "kind": "agent",
+          "sizeBytes": 584,
+          "sha256": "7db21e00a0968dd4e3d05c352392d3af87080a14a6519ea020638cb7db931809"
+        },
+        {
+          "path": "agents/pm/AGENTS.md",
+          "kind": "agent",
+          "sizeBytes": 546,
+          "sha256": "56823816a38ab80c623e4dfd909e179c3d0ca2b4f6b0e6b16198f0e9a6180b26"
+        },
+        {
+          "path": "agents/qa/AGENTS.md",
+          "kind": "agent",
+          "sizeBytes": 561,
+          "sha256": "05bd1b08b84eb2bda6c9d62020fa505a36ac7aabad47a1fa01388c2bac817fc0"
+        },
+        {
+          "path": "agents/security/AGENTS.md",
+          "kind": "agent",
+          "sizeBytes": 645,
+          "sha256": "be1fc7a64b4f32792c53949cd278b2282c18a1c22ebc9789dd0460fd24e4d0e0"
+        },
+        {
+          "path": "projects/project-governance/PROJECT.md",
+          "kind": "project",
+          "sizeBytes": 448,
+          "sha256": "24812871d7e8faf2da0deeecfce292bdc61acbb6d5b4d7af22f88a8c2b97241b"
+        }
+      ],
+      "trustLevel": "markdown_only",
+      "compatibility": "compatible",
+      "contentHash": "sha256:dcca55161f78feac19ac61b602b1c5064c53d85e2f0a2b9ae3b1c03382aa6bdd"
     },
     {
       "id": "paperclipai:bundled:product:product-design",

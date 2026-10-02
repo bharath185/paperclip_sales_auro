@@ -8,23 +8,23 @@
 model_mapping:
   # Governance agents - high reliability, conservative models
   governance:
-    primary: "anthropic/claude-3-opus-20240229"
-    fallback: "anthropic/claude-3-sonnet-20240229"
+    primary: "opencode/deepseek-r1"
+    fallback: "opencode/deepseek-v3"
   
   # Sales agents - cost-optimized, faster models
   sales:
-    primary: "openai/gpt-4-turbo"
-    fallback: "openai/gpt-4o"
+    primary: "opencode/gpt-6-luna"
+    fallback: "opencode/deepseek-v3"
   
   # Developer agents - latest capabilities
   developer:
-    primary: "openai/gpt-4o"
-    fallback: "anthropic/claude-3-sonnet-20240229"
+    primary: "opencode/claude-sonnet-5"
+    fallback: "opencode/deepseek-v3"
   
   # Default fallback for any role not explicitly mapped
   default:
-    primary: "openai/gpt-4o"
-    fallback: "openai/gpt-4-turbo"
+    primary: "opencode/claude-sonnet-5"
+    fallback: "opencode/deepseek-r1"
 
 # Quota warning threshold (percentage)
 # When quota usage reaches this threshold, surface warning in Usage view
