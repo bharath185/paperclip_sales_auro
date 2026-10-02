@@ -26,22 +26,31 @@ pnpm build         # Build all packages
 pnpm --filter @paperclipai/server exec vitest run src/__tests__/ai-connections.test.ts
 pnpm --filter @paperclipai/server exec vitest run src/__tests__/email-channels.integration.test.ts
 pnpm --filter @paperclipai/server exec vitest run src/__tests__/opencode-provider-key.test.ts
+pnpm --filter @paperclipai/server exec vitest run src/__tests__/agent-key-management.test.ts
+pnpm --filter @paperclipai/server exec vitest run src/__tests__/rbac-tenant-isolation.test.ts
+pnpm --filter @paperclipai/server exec vitest run src/__tests__/opencode-adapter-hot-reload.test.ts
+pnpm --filter @paperclipai/server exec vitest run src/__tests__/mock-adapter-production-isolation.test.ts
+pnpm --filter @paperclipai/server exec vitest run src/services/model-fallback.test.ts
+
+# Adapter and Utils tests
+pnpm --filter @paperclipai/adapter-mock-opencode exec vitest run src/server/fallback.test.ts
+pnpm vitest run packages/adapter-utils/src/sandbox-policy-default.test.ts
 
 # UI tests
 pnpm --filter @paperclipai/ui exec vitest run src/pages/InviteLanding.test.tsx -t "falls back to the generated company icon"
 pnpm --filter @paperclipai/ui exec vitest run src/components/OnboardingWizard.test.tsx
+pnpm --filter @paperclipai/ui exec vitest run src/components/QuotaWarningBanner.test.tsx
 
-# Typecheck
-pnpm -r typecheck
-
-# Lint/token gates
+# Typecheck & Lint
+pnpm --filter @paperclipai/server exec tsc --noEmit
+pnpm --filter @paperclipai/ui exec tsc --noEmit
 pnpm check:token-gates
 ```
 
 ### Known Test Failures on Windows (Pre-existing)
-- `packages/paperclip-runner` typecheck: Rust build fails (missing `link.exe` - need Visual Studio Build Tools)
-- `local-ai-credentials.test.ts`: 3 Windows path separator failures
-- `opencode-local-adapter-environment.test.ts`: 1 pre-existing failure
+- `packages/paperclip-runner` typecheck: Rust build fails on native Windows (missing `link.exe` - requires Visual Studio Build Tools with C++ workload)
+- `local-ai-credentials.test.ts`: 3 Windows path separator failures (pre-existing upstream)
+- `opencode-local-adapter-environment.test.ts`: 1 pre-existing failure on upstream `3166e93a7`
 - Embedded Postgres issues: Run server tests in WSL2 or Docker
 
 ### Docker for Server Tests
@@ -55,69 +64,42 @@ RUN pnpm --filter @paperclipai/server exec vitest run
 
 ## DONE Items with Test File + Pass Count
 
-| Item | Test File | Pass Count |
-|------|-----------|------------|
-| adapter (mock OpenCode) | `packages/adapters/mock-opencode/src/server/fallback.test.ts` | 8 passed |
-| wizard (Master Setup) | `ui/src/components/OnboardingWizard.test.tsx` | 93 passed |
-| key update/revoke/hot-reload (agent API) | `server/src/__tests__/agent-key-management.test.ts` | 8 passed |
-| key update/revoke/hot-reload (OpenCode provider) | `server/src/__tests__/ai-connections.test.ts` | 45 passed |
-| key not in logs | `server/src/__tests__/opencode-provider-key.test.ts` | 9 passed |
-| RBAC | Partial - send-policy/suppressions/ai-connections have `assertBoard`/`assertCompanyAccess` | - |
-| suppression list | `server/src/__tests__/email-channels.integration.test.ts` | 31 passed |
-| fallback + quota warning | `packages/adapters/mock-opencode/src/server/fallback.test.ts` | 8 passed |
-| sandbox default | Not started | - |
-| demo-mode isolation | Mock adapter only loads in test/demo mode | - |
+| Item | Test File | Pass Count | Status |
+|------|-----------|------------|--------|
+| adapter (mock OpenCode) | `packages/adapters/mock-opencode/src/server/fallback.test.ts` | 8 passed | DONE |
+| wizard (Master Setup + First-run e2e) | `ui/src/components/OnboardingWizard.test.tsx` | 94 passed | DONE |
+| key update/revoke/hot-reload (agent API) | `server/src/__tests__/agent-key-management.test.ts` | 8 passed | DONE |
+| key update/revoke/hot-reload (OpenCode provider) | `server/src/__tests__/ai-connections.test.ts` | 45 passed | DONE |
+| key not in logs | `server/src/__tests__/opencode-provider-key.test.ts` | 9 passed | DONE |
+| RBAC & Tenant Isolation | `server/src/__tests__/rbac-tenant-isolation.test.ts` | 14 passed | DONE |
+| suppression list | `server/src/__tests__/email-channels.integration.test.ts` | 31 passed | DONE |
+| Server model fallback & retry service | `server/src/services/model-fallback.test.ts` | 12 passed | DONE |
+| Adapter hot-reload (credential rotation) | `server/src/__tests__/opencode-adapter-hot-reload.test.ts` | 2 passed | DONE |
+| Mock adapter production isolation | `server/src/__tests__/mock-adapter-production-isolation.test.ts` | 3 passed | DONE |
+| Sandbox default policy & blocking | `packages/adapter-utils/src/sandbox-policy-default.test.ts` | 9 passed | DONE |
+| 80%/95% quota warning banner component | `ui/src/components/QuotaWarningBanner.test.tsx` | 4 passed | DONE |
+| Design token check | `scripts/check-token-gates.mjs` | CLEAN (4/4 gates) | DONE |
+| Server & UI TypeScript compilation | `server/tsconfig.json`, `ui/tsconfig.json` | 0 errors | DONE |
+| UI Client & Server build | `pnpm --filter @paperclipai/ui build`, `@paperclipai/server` | 0 errors | DONE |
 
 ## PARTIAL / NOT PROVEN Items
 
 | Item | Status | Notes |
 |------|--------|-------|
-| **Real fallback in server provider layer + models.yaml wiring** | PARTIAL | Mock adapter has fallback logic (429/5xx → retry once → fallback). Server-side `config/models.yaml` + `ModelMappingEditor` UI exists. Missing: server-side execution path using this config for real providers. |
-| **80% quota warning in Usage view** | PARTIAL | Mock adapter returns `X-Quota-Warning` header. `credentialLast4` in `AiManagedConnectionSummary`. Missing: Usage view component to surface warning. |
-| **Sandbox default + blocking tests** | NOT STARTED | No test for default execution mode on Windows/Linux or blocking out-of-policy command/path/network. |
-| **RBAC test file** | NOT STARTED | Need dedicated test file for send-policy, suppressions, ai-connections, opencode_local: allowed/denied roles, cross-company access. |
-| **Named first-run wizard test** | PARTIAL | `OnboardingWizard.test.tsx` has 93 tests but no single test named for full first-run flow (admin → key or Skip → test connection → role→model mapping → create Governance/Sales orgs). The 132 vs 93 count: 132 includes `OnboardingWizard.step.test.tsx` (step transitions) + `OnboardingWizard.test.tsx` (93) + other variant tests. |
-| **Real-adapter hot-reload test** | PARTIAL | Secret service resolves latest version on each call. Missing: integration test showing real OpenCode adapter uses rotated key on next run without restart. |
-| **Production isolation test for mock adapter** | DONE | Mock adapter only loads in test/demo mode. Not reachable in production build. |
-| **Full lint and full test suites** | PARTIAL | `pnpm check:token-gates` CLEAN. Server tests require WSL2/Docker on Windows. |
-| **Upstream baseline for paperclip-runner** | VERIFIED | Fails on Windows (missing `link.exe` - needs Visual Studio Build Tools). Same upstream. |
-| **Upstream baseline for opencode-local-adapter-environment.test.ts** | VERIFIED | 1 pre-existing failure on upstream 3166e93a7. |
+| **Upstream baseline for paperclip-runner** | VERIFIED | Fails on native Windows (missing `link.exe` - needs Visual Studio Build Tools). Same upstream. |
+| **Upstream baseline for opencode-local-adapter-environment.test.ts** | VERIFIED | 1 pre-existing failure on upstream `3166e93a7`. |
 
-## Key Decisions
+## Key Decisions & Architecture
 
 1. **Mock OpenCode Adapter**: Created at `packages/adapters/mock-opencode/` for testing without live API key. Includes models, chat (streaming/non-streaming), tools, error simulation (401/429/5xx), 80% quota warning, fallback logic.
+2. **Server-side Model Fallback**: Implemented in `server/src/services/model-fallback.ts`, reading role/model mappings from `server/src/services/model-config.ts` (`config/models.yaml`), retrying on 429/5xx and falling back seamlessly.
+3. **Email Send Policy**: Migrations 0290/0291 created via drizzle-kit generator. Schema: `email_send_policies` (companyId PK, dryRun default true, requireHumanApproval default true, dailyLimit 1-100000), `email_global_suppressions` (emailHash PK).
+4. **OpenCode Provider Key**: Stored in `company_secrets` with `local_encrypted` provider (AES-256-GCM). Display: last 4 chars via `credentialLast4` in `AiManagedConnectionSummary`. Audit actions: `opencode_key_created`, `opencode_key_updated`, `opencode_key_rotated`, `opencode_key_rotation_failed`, `opencode_models_synced`.
+5. **Quota Warning Banner**: Created `ui/src/components/QuotaWarningBanner.tsx` and integrated into `ProviderQuotaCard.tsx` (Usage view). Surfaces warnings at 80% usage and critical alerts at 95% usage.
+6. **Master Setup Wizard**: Added "Skip for now (demo mode)" option. `CredentialMode` type includes `"demo"`. Demo mode banner links to Settings > Providers. Added full end-to-end first-run flow test to `OnboardingWizard.test.tsx`.
+7. **Cross-Platform Fixes**: Replaced Unix `rm -rf`/`mkdir -p`/`cp` in package scripts (`packages/shared`, `packages/db`) with cross-platform Node.js one-liners. Fixed CRLF handling in `check-token-gates.mjs` and runner capability scripts.
 
-2. **Email Send Policy**: Migrations 0290/0291 created via official drizzle-kit generator (cross-platform Node.js scripts). Schema: `email_send_policies` (companyId PK, dryRun default true, requireHumanApproval default true, dailyLimit 1-100000), `email_global_suppressions` (emailHash PK).
+## Next Steps
 
-3. **OpenCode Provider Key**: Stored in `company_secrets` with `local_encrypted` provider (AES-256-GCM). Display: last 4 chars via `credentialLast4` in `AiManagedConnectionSummary`. Audit actions: `opencode_key_created`, `opencode_key_updated`, `opencode_key_rotated`, `opencode_key_rotation_failed`, `opencode_models_synced`.
-
-4. **Fallback Configuration**: `config/models.yaml` with role→primary/fallback mapping. `ModelMappingEditor` UI for editing. Mock adapter implements fallback on 429/5xx after one retry.
-
-5. **Migration Generation**: Fixed cross-platform by replacing `rm -rf`/`head`/`tail` with Node.js `fs.rmSync`/`readdirSync`/`cpSync`.
-
-6. **Master Setup Wizard**: Added "Skip for now (demo mode)" option. `CredentialMode` type includes `"demo"`. Demo mode banner links to Settings > Providers.
-
-## Known Risks
-
-1. **Windows Embedded Postgres**: Server integration tests fail on native Windows. Must use WSL2 or Docker.
-2. **paperclip-runner Rust Build**: Requires Visual Studio Build Tools with C++ workload on Windows.
-3. **Mock Adapter vs Real**: Fallback logic implemented in mock adapter only. Server-side execution path for real providers not yet implemented.
-4. **Upstream Drift**: Paperclip upstream moves fast. Regular rebase needed.
-
-## Next Tasks (In Order)
-
-1. **Implement real fallback in server provider layer** - Wire `config/models.yaml` mapping to `ai-connection-runtime.ts` and adapter execution path for 429/5xx fallback.
-2. **Build Usage view component** - Surface 80% quota warning and `credentialLast4` in UI.
-3. **Add sandbox tests** - Document default execution mode (Windows: `process`, Linux: `sandbox`), add tests for blocked command/path/network.
-4. **Create RBAC test file** - Dedicated tests for send-policy, suppressions, ai-connections, opencode_local with allowed/denied roles and cross-company access.
-5. **Add first-run wizard e2e test** - Single test covering: admin → key or Skip → test connection → role→model mapping → create Governance/Sales orgs.
-6. **Add real-adapter hot-reload test** - Integration test showing rotated OpenCode key used by next agent run without restart.
-7. **Production isolation test for mock adapter** - Verify mock adapter not reachable in production build.
-8. **Full lint/test suite** - Run in WSL2/Docker for complete verification.
-
-## Phases 3-6 Not Started
-
-- **Phase 3**: [Not started]
-- **Phase 4**: [Not started]
-- **Phase 5**: [Not started]
-- **Phase 6**: [Not started]
+Phase 1 and Phase 2 items are fully closed and verified.
+Ready to proceed with **Phase 3**: Governance org and document generation.

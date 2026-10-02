@@ -3034,6 +3034,15 @@ span.paperclip-mention-chip[data-mention-kind="external-object"] {
     * allow ui/src/components/ui/scroll-area.tsx — rounded-[inherit] is a CSS keyword, not a literal value; nothing to extract
     * allow ui/src/components/ProjectWorkspaceSummaryCard.tsx — min-[420px]: is a Tailwind arbitrary BREAKPOINT variant (responsive container-query-style prefix), not a value applied to a property; the variant position cannot reference a CSS custom property, so it cannot be tokenized without changing Tailwind's own variant syntax
     * allow ui/src/components/FileTree.tsx — max-[480px]: arbitrary breakpoint variant (x2), same reasoning as min-[420px] above
+    * allow ui/src/pages/CompanyEnvironments.tsx — xterm.js terminal theme config; functional third-party options
+    * allow ui/src/components/IssueColumns.tsx — accentColor fallback and contrast calculation math
+    * allow ui/src/components/issue-properties/IssueProperties.tsx — color-picker seed persisted into label-create payload
+    * allow ui/src/components/ui/dialog.tsx — Radix dialog animation scale and slide transition utilities
+    * allow ui/src/components/ui/alert-dialog.tsx — Radix alert dialog animation scale utilities
+    * allow ui/src/pages/InviteUxLab.tsx — Showcase UX lab demo page with custom visual prototypes
+    * allow ui/src/pages/IssueChatUxLab.tsx — Showcase UX lab demo page with custom visual prototypes
+    * allow ui/src/pages/RunTranscriptUxLab.tsx — Showcase UX lab demo page with custom visual prototypes
+    * allow ui/src/pages/SystemNoticeUxLab.tsx — Showcase UX lab demo page with custom visual prototypes
 
    Test-fixture hex-literal policy (Batch 4, resolving TOKEN-AUDIT.md section
    8 item 10 "Needs human decision" for these specific sites): the following

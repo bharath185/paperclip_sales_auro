@@ -3,6 +3,7 @@ import type { CostByProviderModel, CostWindowSpendRow, QuotaWindow } from "@pape
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QuotaBar } from "./QuotaBar";
+import { QuotaWarningBanner } from "./QuotaWarningBanner";
 import { ClaudeSubscriptionPanel } from "./ClaudeSubscriptionPanel";
 import { CodexSubscriptionPanel } from "./CodexSubscriptionPanel";
 import {
@@ -159,6 +160,14 @@ export function ProviderQuotaCard({
       </CardHeader>
 
       <CardContent className="px-4 pb-4 pt-3 space-y-4">
+        <QuotaWarningBanner
+          percentUsed={Math.max(
+            budgetPct,
+            weekPct,
+            ...quotaWindows.map((qw) => qw.usedPercent ?? 0),
+          )}
+          provider={providerDisplayName(provider)}
+        />
         {hasBudget && (
           <div className="space-y-3">
             <QuotaBar

@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Save, RefreshCw, AlertCircle, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -132,10 +131,10 @@ export function ModelMappingEditor() {
 
   if (fetchError || !config) {
     return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>Failed to load model configuration</AlertDescription>
-      </Alert>
+      <div role="alert" className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+        <AlertCircle className="h-4 w-4 shrink-0" />
+        <span>Failed to load model configuration</span>
+      </div>
     );
   }
 
@@ -162,10 +161,10 @@ export function ModelMappingEditor() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleReset} disabled={!dirty || status === "saving">
+          <Button variant="outline" onClick={handleReset} disabled={!dirty || status === "saving"}>
             <RefreshCw className="h-4 w-4 mr-2" /> Reset
           </Button>
-          <Button onClick={handleSave} disabled={!dirty || status === "saving">
+          <Button onClick={handleSave} disabled={!dirty || status === "saving"}>
             {status === "saving" && <Save className="h-4 w-4 mr-2 animate-spin" />}
             {status === "saved" && <CheckCircle className="h-4 w-4 mr-2 text-green-500" />}
             Save
@@ -174,17 +173,17 @@ export function ModelMappingEditor() {
       </div>
 
       {status === "error" && error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
+        <div role="alert" className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>{error}</span>
+        </div>
       )}
 
       {status === "saved" && (
-        <Alert variant="default" className="border-green-500/50 bg-green-500/10">
-          <CheckCircle className="h-4 w-4 text-green-500" />
-          <AlertDescription>Configuration saved successfully</AlertDescription>
-        </Alert>
+        <div role="alert" className="flex items-center gap-2 rounded-md border border-green-500/50 bg-green-500/10 p-3 text-sm text-green-700 dark:text-green-300">
+          <CheckCircle className="h-4 w-4 shrink-0 text-green-500" />
+          <span>Configuration saved successfully</span>
+        </div>
       )}
 
       <Card>

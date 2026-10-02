@@ -3,10 +3,15 @@ import { z } from "zod";
 import type { Db } from "@paperclipai/db";
 import { assertBoard, getActorInfo } from "./authz.js";
 import { logActivity } from "../services/activity-log.js";
-import { loadModelConfig, clearModelConfigCache, type ModelConfig, type ModelMapping } from "../services/model-config.js";
+import {
+  loadModelConfig,
+  clearModelConfigCache,
+  stringifyYamlSimple,
+  resolveModelConfigPath,
+  type ModelConfig,
+  type ModelMapping,
+} from "../services/model-config.js";
 import fs from "node:fs";
-import path from "node:path";
-import yaml from "yaml";
 
 export function modelConfigRoutes(db: Db) {
   const router = Router();
@@ -31,13 +36,9 @@ export function modelConfigRoutes(db: Db) {
   type ModelConfigInput = z.infer<typeof ModelConfigSchema>;
   type ModelMapping = z.infer<typeof ModelMappingSchema>;
 
-  function getConfigPath(): string {
-    return path.resolve(process.cwd(), "config", "models.yaml");
-  }
-
   function writeModelConfig(config: ModelConfig): void {
-    const configPath = getConfigPath();
-    const content = yaml.stringify(config);
+    const configPath = resolveModelConfigPath();
+    const content = stringifyYamlSimple(config);
     fs.writeFileSync(configPath, content, "utf8");
     clearModelConfigCache();
   }

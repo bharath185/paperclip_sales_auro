@@ -47,8 +47,9 @@ const expected = {
   [resolve(packageRoot, "src/generated/capability-contract.ts")]: renderContractModule(inventories),
   [resolve(packageRoot, "docs/capability-contract.md")]: renderDocumentation(inventories),
 };
+const normalize = (s) => (s ?? "").replace(/\r\n/g, "\n");
 for (const [path, source] of Object.entries(expected)) {
-  if (await readFile(path, "utf8").catch(() => "") !== source) errors.push(`Generated output is stale: ${path}.`);
+  if (normalize(await readFile(path, "utf8").catch(() => "")) !== normalize(source)) errors.push(`Generated output is stale: ${path}.`);
 }
 if (errors.length > 0) {
   process.stderr.write(`Capability inventory check failed:\n${errors.map((error) => `- ${error}`).join("\n")}\n`);

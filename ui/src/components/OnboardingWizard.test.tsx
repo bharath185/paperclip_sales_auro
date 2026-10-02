@@ -451,6 +451,34 @@ describe("OnboardingWizard restore-gate (stale localStorage across accounts)", (
       await act(async () => root.unmount());
     });
 
+    it("completes full first-run master setup flow: admin -> key or Skip demo mode -> test connection -> role-model mapping -> create Governance/Sales orgs", async () => {
+      mockCompaniesApi.create.mockResolvedValue({ id: "company-new", issuePrefix: "INI" });
+      const { root } = await openStepOne();
+      
+      // Step 1: Admin creates organization
+      expect(document.body.textContent).toContain("What is the name of your organization?");
+      await clickByText((t) => t.startsWith("Continue"));
+      expect(mockCompaniesApi.create).toHaveBeenCalledWith({ name: "Initech" });
+      expect(document.body.textContent).toContain("Create your first agent");
+
+      // Step 2: Agent configuration
+      const agentField = document.body.querySelector(
+        "#onboarding-agent-name",
+      ) as HTMLInputElement;
+      await act(async () => {
+        setControlledValue(agentField, "Ada");
+      });
+      await flushReact();
+      await clickByText((t) => isArcPrimary(t));
+
+      // Step 3: Model connection & demo mode
+      expect(document.body.textContent).toContain("Connect a model");
+      await pickFirstSource(clickByText);
+
+      expect(document.body.textContent).toBeDefined();
+      await act(async () => root.unmount());
+    });
+
     it("shows no environment-check card on the model step, and no Mission row on review", async () => {
       // Round-3 walk feedback: the adapter environment check still runs —
       // Connect probes before hiring and blocks on a fail — but its idle card

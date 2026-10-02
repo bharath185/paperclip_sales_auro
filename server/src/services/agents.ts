@@ -56,12 +56,16 @@ import {
 } from "./built-in-agent-metadata.js";
 import { issueThreadInteractionService } from "./issue-thread-interactions.js";
 
-function hashToken(token: string) {
+export function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
-function createToken() {
+export function createToken() {
   return `pcp_${randomBytes(24).toString("hex")}`;
+}
+
+export function keyPrefix(token: string): string {
+  return token.slice(0, 8);
 }
 
 const CONFIG_REVISION_FIELDS = [
