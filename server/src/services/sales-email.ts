@@ -35,9 +35,21 @@ export interface EmailSendPolicyConfig {
   senderEmail: string;
   physicalAddress: string;
   warmupDayCount: number;
+  maxPerDomainPerHour: number;
 }
 
 export const DEFAULT_PHYSICAL_ADDRESS = "Project Auro Technologies, 4th Floor, Tech Park, Outer Ring Road, Bengaluru, Karnataka 560103, India";
+
+export const DEFAULT_SALES_EMAIL_CONFIG: Omit<EmailSendPolicyConfig, "companyId"> = {
+  dryRun: true,
+  requireHumanApproval: true,
+  dailyLimit: 50,
+  senderName: "Varun Sharma",
+  senderEmail: "outreach@projectauro.com",
+  physicalAddress: DEFAULT_PHYSICAL_ADDRESS,
+  warmupDayCount: 14,
+  maxPerDomainPerHour: 3,
+};
 
 export const DEFAULT_3_TOUCH_SEQUENCE: EmailSequenceStep[] = [
   {
@@ -207,7 +219,61 @@ export function renderLeadSequence(
   });
 }
 
+/**
+ * Domain-level rate limiter to prevent spamming multiple contacts at the same company.
+ */
+export class DomainThrottler {
+  private domainTimestamps: Map<string, number[]> = new Map();
+
+  isAllowed(email: string, maxPerHour: number = 3): { allowed: boolean; retryAfterSec?: number } {
+    const domain = email.split("@")[1]?.toLowerCase();
+    if (!domain) return { allowed: true };
+
+    const now = Date.now();
+    const windowStart = now - 3600000; // 1 hour window
+    const timestamps = (this.domainTimestamps.get(domain) || []).filter((t) => t > windowStart);
+
+    if (timestamps.length >= maxPerHour) {
+      const oldestInWindow = timestamps[0];
+      const retryAfterSec = Math.ceil((oldestInWindow + 3600000 - now) / 1000);
+      return { allowed: false, retryAfterSec };
+    }
+
+    timestamps.push(now);
+    this.domainTimestamps.set(domain, timestamps);
+    return { allowed: true };
+  }
+
+  reset(): void {
+    this.domainTimestamps.clear();
+  }
+}
+
+/**
+ * Local mail sink for test and demo isolation (never opens external sockets).
+ */
+export class LocalMailSink {
+  private capturedEmails: RenderedEmail[] = [];
+
+  send(email: RenderedEmail): { success: boolean; sinkId: string; isLocalSink: boolean } {
+    const sinkId = `sink_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    this.capturedEmails.push({ ...email, status: "sent" });
+    return { success: true, sinkId, isLocalSink: true };
+  }
+
+  getCaptured(): RenderedEmail[] {
+    return [...this.capturedEmails];
+  }
+
+  clear(): void {
+    this.capturedEmails = [];
+  }
+}
+
 export function salesEmailService(db: Db) {
+  const domainThrottler = new DomainThrottler();
+  const mailSink = new LocalMailSink();
+
   async function isEmailSuppressed(email: string): Promise<boolean> {
     const hash = hashEmailAddress(email);
     const [row] = await db
@@ -231,9 +297,9 @@ export function salesEmailService(db: Db) {
 
   async function validatePreSendCompliance(
     email: RenderedEmail,
-    companyId: string,
+    options?: { maxPerDomainPerHour?: number },
   ): Promise<{ allowed: boolean; reason?: string }> {
-    // 1. Check global suppression list
+    // 1. Check global suppression list (opted out or bounced)
     const suppressed = await isEmailSuppressed(email.to);
     if (suppressed) {
       return { allowed: false, reason: `Recipient ${email.to} is globally suppressed (opted out or bounced).` };
@@ -247,6 +313,16 @@ export function salesEmailService(db: Db) {
       return { allowed: false, reason: "Email missing required physical postal address." };
     }
 
+    // 3. Per-domain throttling check
+    const maxPerHour = options?.maxPerDomainPerHour || DEFAULT_SALES_EMAIL_CONFIG.maxPerDomainPerHour;
+    const throttleCheck = domainThrottler.isAllowed(email.to, maxPerHour);
+    if (!throttleCheck.allowed) {
+      return {
+        allowed: false,
+        reason: `Domain throttle exceeded. Max ${maxPerHour} sends per domain per hour. Retry after ${throttleCheck.retryAfterSec}s.`,
+      };
+    }
+
     return { allowed: true };
   }
 
@@ -254,11 +330,49 @@ export function salesEmailService(db: Db) {
     await suppressEmail(email, "hard_bounce");
   }
 
+  async function handleOptOut(email: string): Promise<void> {
+    await suppressEmail(email, "user_unsubscribe");
+  }
+
+  async function sendEmailSafely(
+    email: RenderedEmail,
+    config: Partial<EmailSendPolicyConfig> = {},
+  ): Promise<{ success: boolean; dryRun: boolean; mailSinkId?: string; reason?: string }> {
+    const effectiveConfig = { ...DEFAULT_SALES_EMAIL_CONFIG, ...config };
+
+    // Strict compliance validation
+    const compliance = await validatePreSendCompliance(email, {
+      maxPerDomainPerHour: effectiveConfig.maxPerDomainPerHour,
+    });
+    if (!compliance.allowed) {
+      return { success: false, dryRun: effectiveConfig.dryRun, reason: compliance.reason };
+    }
+
+    // In dry-run mode or test environment, route to local mail sink
+    if (effectiveConfig.dryRun || process.env.NODE_ENV === "test") {
+      const sinkResult = mailSink.send(email);
+      return { success: true, dryRun: true, mailSinkId: sinkResult.sinkId };
+    }
+
+    // In production live mode (requires human approval gate passed)
+    if (effectiveConfig.requireHumanApproval && email.status !== "approved") {
+      return { success: false, dryRun: false, reason: "Human approval required before dispatch." };
+    }
+
+    // Capture in mail sink
+    const result = mailSink.send(email);
+    return { success: true, dryRun: false, mailSinkId: result.sinkId };
+  }
+
   return {
     isEmailSuppressed,
     suppressEmail,
     validatePreSendCompliance,
     handleHardBounce,
+    handleOptOut,
+    sendEmailSafely,
     renderLeadSequence,
+    domainThrottler,
+    mailSink,
   };
 }

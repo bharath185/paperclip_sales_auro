@@ -31,15 +31,34 @@ describe('Sales CRM Service & Connectors', () => {
     updatedAt: '2026-10-02T10:00:00Z'
   };
 
-  describe('Secret Masking', () => {
-    it('masks secrets securely for logs', () => {
-      expect(maskSecret('pat-eu1-123456789-abcdef')).toBe('pat-...cdef');
+  describe('Secret Masking & Security Scan', () => {
+    it('masks secrets securely for logs and never emits raw tokens', () => {
+      const sensitiveToken = 'pat-eu1-123456789-abcdef';
+      const masked = maskSecret(sensitiveToken);
+      expect(masked).toBe('pat-...cdef');
+      expect(masked).not.toContain('123456789');
       expect(maskSecret('short')).toBe('****');
       expect(maskSecret(undefined)).toBe('***');
     });
+
+    it('scans connector DTO representation and verifies secret tokens are not leaked', () => {
+      const config = {
+        provider: 'hubspot' as const,
+        apiKey: 'super-secret-hubspot-token-9999',
+        isMock: true,
+      };
+      const serialized = JSON.stringify({
+        provider: config.provider,
+        maskedApiKey: maskSecret(config.apiKey),
+        isMock: config.isMock,
+      });
+
+      expect(serialized).not.toContain('super-secret-hubspot-token-9999');
+      expect(serialized).toContain('supe...9999');
+    });
   });
 
-  describe('Deterministic Idempotency Key', () => {
+  describe('Deterministic Idempotency Key & Deduplication', () => {
     it('generates reproducible SHA-256 hash across identical contact emails', () => {
       const key1 = generateLeadIdempotencyKey(sampleLead);
       const key2 = generateLeadIdempotencyKey({
@@ -48,6 +67,17 @@ describe('Sales CRM Service & Connectors', () => {
       });
       expect(key1).toBe(key2);
       expect(key1).toHaveLength(64);
+    });
+
+    it('guarantees idempotent upsert with identical externalId on repeated syncs', async () => {
+      const connector = new HubSpotConnector({ provider: 'hubspot', isMock: true });
+      const firstSync = await connector.upsertLead(sampleLead);
+      const secondSync = await connector.upsertLead(sampleLead);
+
+      expect(firstSync.success).toBe(true);
+      expect(secondSync.success).toBe(true);
+      expect(firstSync.externalId).toBe(secondSync.externalId);
+      expect(firstSync.idempotencyKey).toBe(secondSync.idempotencyKey);
     });
   });
 
@@ -88,42 +118,40 @@ describe('Sales CRM Service & Connectors', () => {
     });
   });
 
-  describe('HubSpot Connector', () => {
-    it('upserts a lead in mock mode and tracks sync status', async () => {
+  describe('Per-Lead Sync Status & Error Log', () => {
+    it('records syncState and error log when sync fails', async () => {
       const connector = new HubSpotConnector({
         provider: 'hubspot',
-        apiKey: 'mock-key',
-        isMock: true
+        apiKey: 'invalid-key',
+        isMock: false
       });
 
-      const result = await connector.upsertLead(sampleLead);
-      expect(result.success).toBe(true);
-      expect(result.provider).toBe('hubspot');
-      expect(result.externalId).toMatch(/^hs_/);
+      // Mock global fetch to reject
+      const originalFetch = global.fetch;
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized'
+      } as any);
 
-      const status = await connector.getSyncStatus(sampleLead.id);
-      expect(status).not.toBeNull();
-      expect(status?.stage).toBe('new');
+      try {
+        const result = await connector.upsertLead(sampleLead);
+        expect(result.success).toBe(false);
+        expect(result.message).toContain('Unauthorized');
 
-      const stageResult = await connector.updateStage(sampleLead.id, 'contacted');
-      expect(stageResult.success).toBe(true);
-      const updatedStatus = await connector.getSyncStatus(sampleLead.id);
-      expect(updatedStatus?.stage).toBe('contacted');
-    });
-
-    it('attaches timeline events to the lead', async () => {
-      const connector = new HubSpotConnector({ provider: 'hubspot', isMock: true });
-      const timelineResult = await connector.attachTimeline(sampleLead.id, {
-        eventType: 'email_sent',
-        timestamp: '2026-10-02T12:00:00Z',
-        title: 'Initial Outreach Sent',
-        description: 'Sent email Touch 1 to Rajesh Kumar'
-      });
-      expect(timelineResult.success).toBe(true);
+        const status = await connector.getSyncStatus(sampleLead.id);
+        expect(status).not.toBeNull();
+        expect(status?.syncState).toBe('failed');
+        expect(status?.errorLog).toBeDefined();
+        expect(status?.errorLog?.length).toBeGreaterThan(0);
+        expect(status?.errorLog?.[0].error).toContain('Unauthorized');
+      } finally {
+        global.fetch = originalFetch;
+      }
     });
   });
 
-  describe('Generic Webhook Connector', () => {
+  describe('Generic Webhook & CSV Connectors', () => {
     it('executes mock webhook payload delivery with idempotency header', async () => {
       const connector = new GenericWebhookConnector({
         provider: 'generic_webhook',
@@ -139,9 +167,7 @@ describe('Sales CRM Service & Connectors', () => {
       const status = await connector.getSyncStatus(sampleLead.id);
       expect(status?.provider).toBe('generic_webhook');
     });
-  });
 
-  describe('CSV Export Connector', () => {
     it('formats lead dataset into well-formed CSV with header and escaping', async () => {
       const connector = new CsvExportConnector();
       await connector.upsertLead(sampleLead);

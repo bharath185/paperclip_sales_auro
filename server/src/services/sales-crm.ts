@@ -31,6 +31,8 @@ export interface CrmLeadStatus {
   provider: CrmProviderType;
   stage: string;
   lastSyncedAt: string;
+  syncState: 'synced' | 'failed' | 'pending';
+  errorLog?: Array<{ timestamp: string; error: string }>;
   metadata?: Record<string, unknown>;
 }
 
@@ -125,17 +127,43 @@ export class HubSpotConnector implements CrmConnector {
   async upsertLead(lead: LeadRecord): Promise<CrmSyncResult> {
     const idempotencyKey = generateLeadIdempotencyKey(lead);
 
-    const { attempts } = await executeWithRetry(async () => {
-      if (this.config.isMock || !this.config.apiKey) {
-        // Mock sync simulation
-        const externalId = `hs_${idempotencyKey.substring(0, 12)}`;
-        this.syncStore.set(lead.id, {
-          externalId,
-          provider: 'hubspot',
-          stage: lead.crmStage || 'lead',
-          lastSyncedAt: new Date().toISOString(),
-          metadata: {
-            hubspotProperties: {
+    try {
+      const { attempts } = await executeWithRetry(async () => {
+        if (this.config.isMock || !this.config.apiKey) {
+          // Mock sync simulation
+          const externalId = `hs_${idempotencyKey.substring(0, 12)}`;
+          this.syncStore.set(lead.id, {
+            externalId,
+            provider: 'hubspot',
+            stage: lead.crmStage || 'lead',
+            lastSyncedAt: new Date().toISOString(),
+            syncState: 'synced',
+            metadata: {
+              hubspotProperties: {
+                email: lead.contactEmail,
+                firstname: lead.contactName?.split(' ')[0] || '',
+                lastname: lead.contactName?.split(' ').slice(1).join(' ') || '',
+                company: lead.companyName,
+                phone: lead.contactPhone,
+                city: lead.locationCity,
+                industry: lead.industry,
+                jobtitle: lead.contactTitle,
+                auro_lead_score: lead.leadScore
+              }
+            }
+          });
+          return externalId;
+        }
+
+        // Live HubSpot Contacts API v3 call (if real key provided)
+        const res = await fetch('https://api.hubapi.com/crm/v3/objects/contacts', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.config.apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            properties: {
               email: lead.contactEmail,
               firstname: lead.contactName?.split(' ')[0] || '',
               lastname: lead.contactName?.split(' ').slice(1).join(' ') || '',
@@ -144,57 +172,55 @@ export class HubSpotConnector implements CrmConnector {
               city: lead.locationCity,
               industry: lead.industry,
               jobtitle: lead.contactTitle,
-              auro_lead_score: lead.leadScore
+              hs_lead_status: 'NEW',
+              auro_lead_score: String(lead.leadScore)
             }
-          }
+          })
         });
-        return externalId;
-      }
 
-      // Live HubSpot Contacts API v3 call (if real key provided)
-      const res = await fetch('https://api.hubapi.com/crm/v3/objects/contacts', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.config.apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          properties: {
-            email: lead.contactEmail,
-            firstname: lead.contactName?.split(' ')[0] || '',
-            lastname: lead.contactName?.split(' ').slice(1).join(' ') || '',
-            company: lead.companyName,
-            phone: lead.contactPhone,
-            city: lead.locationCity,
-            industry: lead.industry,
-            jobtitle: lead.contactTitle,
-            hs_lead_status: 'NEW',
-            auro_lead_score: String(lead.leadScore)
-          }
-        })
+        if (!res.ok && res.status !== 409) {
+          const error: any = new Error(`HubSpot API error: ${res.statusText}`);
+          error.statusCode = res.status;
+          throw error;
+        }
+
+        const data = await res.json().catch(() => ({ id: `hs_${idempotencyKey.substring(0, 8)}` }));
+        return (data as any).id || `hs_${idempotencyKey.substring(0, 8)}`;
       });
 
-      if (!res.ok && res.status !== 409) {
-        const error: any = new Error(`HubSpot API error: ${res.statusText}`);
-        error.statusCode = res.status;
-        throw error;
-      }
+      const status = this.syncStore.get(lead.id);
 
-      const data = await res.json().catch(() => ({ id: `hs_${idempotencyKey.substring(0, 8)}` }));
-      return (data as any).id || `hs_${idempotencyKey.substring(0, 8)}`;
-    });
+      return {
+        success: true,
+        provider: 'hubspot',
+        externalId: status?.externalId || `hs_${idempotencyKey.substring(0, 12)}`,
+        statusCode: 200,
+        syncedAt: new Date().toISOString(),
+        idempotencyKey,
+        retriesAttempted: attempts - 1
+      };
+    } catch (err: any) {
+      const existing = this.syncStore.get(lead.id) || {
+        externalId: `hs_${idempotencyKey.substring(0, 12)}`,
+        provider: 'hubspot',
+        stage: lead.crmStage || 'lead',
+        lastSyncedAt: new Date().toISOString(),
+        syncState: 'failed',
+        errorLog: []
+      };
+      existing.syncState = 'failed';
+      existing.errorLog = existing.errorLog || [];
+      existing.errorLog.push({ timestamp: new Date().toISOString(), error: err.message || String(err) });
+      this.syncStore.set(lead.id, existing);
 
-    const status = this.syncStore.get(lead.id);
-
-    return {
-      success: true,
-      provider: 'hubspot',
-      externalId: status?.externalId || `hs_${idempotencyKey.substring(0, 12)}`,
-      statusCode: 200,
-      syncedAt: new Date().toISOString(),
-      idempotencyKey,
-      retriesAttempted: attempts - 1
-    };
+      return {
+        success: false,
+        provider: 'hubspot',
+        message: err.message || 'Sync failed',
+        syncedAt: new Date().toISOString(),
+        idempotencyKey,
+      };
+    }
   }
 
   async attachTimeline(leadId: string, event: TimelineEvent): Promise<CrmSyncResult> {

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 
 export interface SalesLead {
@@ -20,6 +21,7 @@ export interface SalesLead {
   score: number;
   status: "discovered" | "approved" | "rejected" | "sequence_active" | "replied" | "hot_lead" | "opted_out";
   notes?: string;
+  dataSource?: string;
   rawExtractedData?: Record<string, unknown>;
 }
 
@@ -118,47 +120,63 @@ export function calculateLeadScore(lead: {
   }
 
   // 2. Location proximity (max 25 pts)
-  const targetLoc = (lead.targetLocation || "bengaluru").toLowerCase();
-  const leadLoc = lead.location.toLowerCase();
-  if (
-    leadLoc.includes("bengaluru") ||
-    leadLoc.includes("bangalore") ||
-    leadLoc.includes("peenya") ||
-    leadLoc.includes("whitefield") ||
-    leadLoc.includes("bommasandra") ||
-    leadLoc.includes("hosur") ||
-    leadLoc.includes(targetLoc)
-  ) {
+  const targetLoc = (lead.targetLocation || "Bengaluru").toLowerCase();
+  if (lead.location.toLowerCase().includes(targetLoc) || lead.location.toLowerCase().includes("peenya") || lead.location.toLowerCase().includes("bommasandra")) {
     score += 25;
-  } else if (leadLoc.length > 2) {
-    score += 10;
+  } else if (lead.location.toLowerCase().includes("karnataka") || lead.location.toLowerCase().includes("india")) {
+    score += 15;
   }
 
-  // 3. Decision-maker seniority & title match (max 25 pts)
+  // 3. Decision maker seniority (max 30 pts)
   const title = lead.decisionMakerTitle.toLowerCase();
-  const highValueKeywords = ["managing director", "director", "founder", "ceo", "plant head", "vp", "head of", "general manager", "chief"];
-  if (highValueKeywords.some((kw) => title.includes(kw))) {
-    score += 25;
+  const defaultSeniorTitles = ["vp", "vice president", "director", "head", "managing director", "chief", "cto", "coo", "general manager", "plant manager"];
+  const targetTitles = (lead.targetTitles && lead.targetTitles.length > 0)
+    ? lead.targetTitles.map((t) => t.toLowerCase())
+    : defaultSeniorTitles;
+
+  const matchesTitle = targetTitles.some((t) => title.includes(t));
+  if (matchesTitle) {
+    score += 30;
   } else if (title.includes("manager") || title.includes("lead")) {
     score += 15;
   }
 
-  // 4. Valid business domain & email syntax (max 20 pts)
-  if (lead.website && normalizeDomain(lead.website).includes(".")) {
+  // 4. Data completeness & validity (max 15 pts)
+  if (lead.email && validateBusinessEmail(lead.email).valid) {
     score += 10;
   }
-  if (validateBusinessEmail(lead.email).valid) {
-    score += 10;
+  if (lead.website && lead.website.startsWith("http")) {
+    score += 5;
   }
 
   return Math.min(100, Math.max(0, score));
 }
 
+export const RawLeadDataSchema = z.object({
+  companyId: z.string(),
+  campaignId: z.string(),
+  companyName: z.string().min(2),
+  website: z.string().url(),
+  industry: z.string(),
+  subSegment: z.string().optional(),
+  location: z.string(),
+  companySize: z.string().optional(),
+  decisionMakerName: z.string().min(2),
+  decisionMakerTitle: z.string().min(2),
+  email: z.string().email(),
+  phone: z.string().optional().nullable(),
+  sourceUrl: z.string().url(),
+  notes: z.string().optional(),
+  rawExtractedData: z.record(z.unknown()).optional(),
+});
+
+export type RawLeadData = z.infer<typeof RawLeadDataSchema>;
+
 /**
- * Deduplicates and validates raw extracted leads against an existing company lead pool.
+ * Validates, sanitizes, deduplicates, and scores raw lead intelligence against existing leads.
  */
 export function deduplicateAndValidateLeads(
-  newLeads: Array<Omit<SalesLead, "id" | "score" | "status" | "discoveredAt">>,
+  rawLeads: unknown[],
   existingLeads: SalesLead[] = [],
   campaignContext?: {
     targetIndustry?: string;
@@ -167,36 +185,47 @@ export function deduplicateAndValidateLeads(
   },
 ): {
   validLeads: SalesLead[];
-  rejectedLeads: Array<{ lead: any; reason: string }>;
+  rejectedLeads: Array<{ lead: unknown; reason: string }>;
   duplicateCount: number;
 } {
-  const seenDomains = new Set<string>(existingLeads.map((l) => normalizeDomain(l.website || l.domain)));
-  const seenEmails = new Set<string>(existingLeads.map((l) => l.email.toLowerCase().trim()));
-
   const validLeads: SalesLead[] = [];
-  const rejectedLeads: Array<{ lead: any; reason: string }> = [];
+  const rejectedLeads: Array<{ lead: unknown; reason: string }> = [];
+  const seenDomains = new Set<string>(existingLeads.map((l) => normalizeDomain(l.website || l.domain)));
+  const seenEmails = new Set<string>(existingLeads.map((l) => l.email.toLowerCase()));
   let duplicateCount = 0;
 
-  for (const raw of newLeads) {
-    // 1. Sanitize all string fields from prompt injection
+  for (const item of rawLeads) {
+    // 1. Zod Schema parse
+    const parseResult = RawLeadDataSchema.safeParse(item);
+    if (!parseResult.success) {
+      rejectedLeads.push({
+        lead: item,
+        reason: `Schema validation failed: ${parseResult.error.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")}`,
+      });
+      continue;
+    }
+
+    const raw = parseResult.data;
+
+    // 2. Prompt Injection Sanitization
     const sanitizedCompanyName = sanitizeUntrustedWebContent(raw.companyName);
     const sanitizedDmName = sanitizeUntrustedWebContent(raw.decisionMakerName);
     const sanitizedDmTitle = sanitizeUntrustedWebContent(raw.decisionMakerTitle);
     const sanitizedLocation = sanitizeUntrustedWebContent(raw.location);
-    const sanitizedSubSegment = sanitizeUntrustedWebContent(raw.subSegment);
+    const sanitizedSubSegment = sanitizeUntrustedWebContent(raw.subSegment || "");
     const sanitizedNotes = sanitizeUntrustedWebContent(raw.notes || "");
 
-    const domain = normalizeDomain(raw.website || raw.domain || "");
-    const email = raw.email.trim().toLowerCase();
-
-    // 2. Validate email
-    const emailValidation = validateBusinessEmail(email);
+    // 3. Email and Domain validation
+    const emailValidation = validateBusinessEmail(raw.email);
     if (!emailValidation.valid) {
-      rejectedLeads.push({ lead: raw, reason: emailValidation.reason || "Invalid email" });
+      rejectedLeads.push({ lead: raw, reason: emailValidation.reason || "Invalid business email" });
       continue;
     }
 
-    // 3. Deduplicate
+    const domain = normalizeDomain(raw.website);
+    const email = raw.email.trim().toLowerCase();
+
+    // Check for in-batch or existing duplicates
     if (seenDomains.has(domain)) {
       duplicateCount++;
       rejectedLeads.push({ lead: raw, reason: `Duplicate company domain: ${domain}` });
@@ -222,7 +251,7 @@ export function deduplicateAndValidateLeads(
     });
 
     const leadRecord: SalesLead = {
-      id: `lead-${Math.random().toString(36).substring(2, 9)}`,
+      id: `lead-${randomUUID()}`,
       companyId: raw.companyId,
       campaignId: raw.campaignId,
       companyName: sanitizedCompanyName,
@@ -241,6 +270,7 @@ export function deduplicateAndValidateLeads(
       score,
       status: score >= 50 ? "discovered" : "rejected",
       notes: sanitizedNotes,
+      dataSource: "Web Researcher",
       rawExtractedData: raw.rawExtractedData,
     };
 
@@ -254,6 +284,110 @@ export function deduplicateAndValidateLeads(
     rejectedLeads,
     duplicateCount,
   };
+}
+
+/**
+ * Legacy alias for sanitizeAndIngestLeads
+ */
+export function sanitizeAndIngestLeads(
+  rawLeads: unknown[],
+  campaignContext?: {
+    targetIndustry?: string;
+    targetLocation?: string;
+    targetTitles?: string[];
+  },
+) {
+  return deduplicateAndValidateLeads(rawLeads, [], campaignContext);
+}
+
+/**
+ * Parses robots.txt Disallow rules for web crawlers.
+ */
+export function isPathAllowedByRobotsTxt(robotsTxtContent: string, path: string): boolean {
+  if (!robotsTxtContent) return true;
+  const lines = robotsTxtContent.split("\n");
+  let appliesToAll = false;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.toLowerCase().startsWith("user-agent:")) {
+      const agent = trimmed.split(":")[1]?.trim();
+      appliesToAll = agent === "*" || agent?.toLowerCase() === "projectauro";
+    } else if (appliesToAll && trimmed.toLowerCase().startsWith("disallow:")) {
+      const disallowPath = trimmed.split(":")[1]?.trim();
+      if (disallowPath && disallowPath !== "" && path.startsWith(disallowPath)) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Real Web Researcher Service with robots.txt parsing and rate limiting.
+ */
+export class WebResearcherService {
+  private domainLastAccess: Map<string, number> = new Map();
+
+  constructor(
+    private options: {
+      minDomainDelayMs?: number;
+      fetchFn?: typeof fetch;
+    } = {},
+  ) {}
+
+  async fetchPage(
+    url: string,
+    mockRobotsTxt?: string,
+  ): Promise<{ success: boolean; content?: string; sourceUrl: string; reason?: string }> {
+    const parsedUrl = new URL(url);
+    const domain = parsedUrl.hostname;
+    const path = parsedUrl.pathname;
+
+    // 1. Respect robots.txt
+    if (mockRobotsTxt && !isPathAllowedByRobotsTxt(mockRobotsTxt, path)) {
+      return {
+        success: false,
+        sourceUrl: url,
+        reason: `Blocked by robots.txt rule for path: ${path}`,
+      };
+    }
+
+    // 2. Rate limiting check (min delay per domain)
+    const minDelay = this.options.minDomainDelayMs ?? 1000;
+    const now = Date.now();
+    const lastAccess = this.domainLastAccess.get(domain) || 0;
+    const timeSinceLast = now - lastAccess;
+
+    if (timeSinceLast < minDelay) {
+      await new Promise((resolve) => setTimeout(resolve, minDelay - timeSinceLast));
+    }
+    this.domainLastAccess.set(domain, Date.now());
+
+    // 3. Perform fetch
+    try {
+      const fetchImpl = this.options.fetchFn || fetch;
+      const res = await fetchImpl(url, {
+        headers: {
+          "User-Agent": "ProjectAuroBot/1.0 (+https://projectauro.com/bot)",
+        },
+      });
+
+      if (!res.ok) {
+        return { success: false, sourceUrl: url, reason: `HTTP error ${res.status}: ${res.statusText}` };
+      }
+
+      const text = await res.text();
+      return {
+        success: true,
+        sourceUrl: url,
+        content: sanitizeUntrustedWebContent(text),
+      };
+    } catch (err: any) {
+      return { success: false, sourceUrl: url, reason: err.message || "Fetch failed" };
+    }
+  }
 }
 
 export const BENGALURU_MANUFACTURING_FIXTURES: Array<Omit<SalesLead, "id" | "score" | "status" | "discoveredAt">> = [
@@ -272,6 +406,7 @@ export const BENGALURU_MANUFACTURING_FIXTURES: Array<Omit<SalesLead, "id" | "sco
     email: "rajesh.kumar@precisionaero.co.in",
     phone: "+91 80 2839 1234",
     sourceUrl: "https://precisionaero.co.in/leadership",
+    dataSource: "Demo data",
     notes: "Tier-1 AS9100 certified precision machining facility with 40+ CNC centers.",
   },
   {
@@ -289,6 +424,7 @@ export const BENGALURU_MANUFACTURING_FIXTURES: Array<Omit<SalesLead, "id" | "sco
     email: "ananya.d@apextooling.in",
     phone: "+91 80 2783 5678",
     sourceUrl: "https://apextooling.in/contact",
+    dataSource: "Demo data",
     notes: "Specializes in high-tolerance automotive stamping dies and injection molds.",
   },
   {
@@ -306,6 +442,7 @@ export const BENGALURU_MANUFACTURING_FIXTURES: Array<Omit<SalesLead, "id" | "sco
     email: "vikram.rao@zenithauto.in",
     phone: "+91 80 4129 9000",
     sourceUrl: "https://zenithauto.in/about-us",
+    dataSource: "Demo data",
     notes: "Supplies transmission and powertrain subassemblies to major OEMs.",
   },
   {
@@ -323,6 +460,7 @@ export const BENGALURU_MANUFACTURING_FIXTURES: Array<Omit<SalesLead, "id" | "sco
     email: "suresh@kalyanipackaging.com",
     phone: "+91 80 2845 3321",
     sourceUrl: "https://kalyanipackaging.com/team",
+    dataSource: "Demo data",
     notes: "Manufactures automated pharmaceutical packaging lines and corrugated carton machinery.",
   },
 ];
@@ -341,4 +479,3 @@ export async function researchBengaluruManufacturingLeads(
   }
   return BENGALURU_MANUFACTURING_FIXTURES;
 }
-
