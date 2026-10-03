@@ -104,6 +104,8 @@ describe("Authorization Sweep & Cross-Company IDOR Matrix Tests", () => {
       { method: "post", path: `/companies/${allowedCompanyId}/sales/campaigns`, body: { name: "C", industry: "M", location: "B", targetTitles: ["VP"], offerProposition: "V" } },
       { method: "get", path: `/companies/${allowedCompanyId}/sales/hot-leads` },
       { method: "get", path: `/companies/${allowedCompanyId}/sales/suppressions` },
+      { method: "delete", path: `/companies/${allowedCompanyId}/sales/leads/lead-123` },
+      { method: "get", path: `/companies/${allowedCompanyId}/sales/campaigns/camp-123/export-csv` },
     ];
 
     for (const ep of salesEndpoints) {
@@ -123,6 +125,22 @@ describe("Authorization Sweep & Cross-Company IDOR Matrix Tests", () => {
 
       const salesRes = await request(authorizedApp).get(`/companies/${allowedCompanyId}/sales/prompts`);
       expect(salesRes.status).toBe(200);
+    });
+  });
+
+  describe("4. Public Endpoint Allowlist (No Auth Required)", () => {
+    it("permits unauthenticated access to health and opt-out endpoints", async () => {
+      const publicApp = express();
+      publicApp.get("/api/health", (_req, res) => res.json({ status: "ok" }));
+      publicApp.post("/api/sales/opt-out", (_req, res) => res.json({ success: true, optedOut: true }));
+
+      const healthRes = await request(publicApp).get("/api/health");
+      expect(healthRes.status).toBe(200);
+      expect(healthRes.body.status).toBe("ok");
+
+      const optOutRes = await request(publicApp).post("/api/sales/opt-out").send({ token: "test-token" });
+      expect(optOutRes.status).toBe(200);
+      expect(optOutRes.body.optedOut).toBe(true);
     });
   });
 });

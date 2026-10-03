@@ -32,13 +32,20 @@ describe("Web Researcher Security Hardening: SSRF & Prompt Injection Defenses", 
       expect(isPrivateIp("fe80::1")).toBe(true);
       expect(isPrivateIp("::ffff:127.0.0.1")).toBe(true);
 
+      // Decimal / Octal / Hex representations
+      expect(isPrivateIp("2130706433")).toBe(true); // 127.0.0.1 in decimal
+      expect(isPrivateIp("2852039166")).toBe(true); // 169.254.169.254 in decimal
+      expect(isPrivateIp("0177.0.0.1")).toBe(true); // 127.0.0.1 in octal
+      expect(isPrivateIp("0251.0376.0251.0376")).toBe(true); // 169.254.169.254 in octal
+      expect(isPrivateIp("0x7f.0.0.1")).toBe(true); // 127.0.0.1 in hex
+
       // Public IPs (Safe)
       expect(isPrivateIp("8.8.8.8")).toBe(false);
       expect(isPrivateIp("1.1.1.1")).toBe(false);
       expect(isPrivateIp("142.250.190.46")).toBe(false);
     });
 
-    it("blocks non-HTTP protocols, localhost, and cloud metadata hostnames", async () => {
+    it("blocks non-HTTP protocols, localhost, decimal/octal IPs, and cloud metadata hostnames", async () => {
       // Forbidden protocols
       expect((await validateSsrfSafeUrl("file:///etc/passwd")).safe).toBe(false);
       expect((await validateSsrfSafeUrl("gopher://127.0.0.1:6379/_flushall")).safe).toBe(false);
@@ -48,6 +55,10 @@ describe("Web Researcher Security Hardening: SSRF & Prompt Injection Defenses", 
       expect((await validateSsrfSafeUrl("http://127.0.0.1:3000")).safe).toBe(false);
       expect((await validateSsrfSafeUrl("http://localhost:8080/admin")).safe).toBe(false);
       expect((await validateSsrfSafeUrl("http://169.254.169.254/latest/meta-data/")).safe).toBe(false);
+      expect((await validateSsrfSafeUrl("http://2130706433/")).safe).toBe(false); // Decimal 127.0.0.1
+      expect((await validateSsrfSafeUrl("http://0177.0.0.1/")).safe).toBe(false); // Octal 127.0.0.1
+      expect((await validateSsrfSafeUrl("http://[::1]/")).safe).toBe(false); // IPv6 loopback
+      expect((await validateSsrfSafeUrl("http://[fe80::1]/")).safe).toBe(false); // IPv6 link-local
       expect((await validateSsrfSafeUrl("http://metadata.google.internal/computeMetadata/v1/")).safe).toBe(false);
       expect((await validateSsrfSafeUrl("http://instance-data/latest/meta-data")).safe).toBe(false);
 

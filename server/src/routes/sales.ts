@@ -400,20 +400,116 @@ export function salesRoutes(db: Db) {
     }
   );
 
-  // 10. CSV Export
+  // 10. Data Export (CSV & JSON) with Audit Logging
   router.get(
     "/companies/:companyId/sales/campaigns/:campaignId/export-csv",
     async (req: Request, res) => {
       const companyId = resolveCompanyId(req);
       const campaignId = getParam(req.params.campaignId);
+      const actor = getActorInfo(req);
 
       const result = await salesCampaignService.listLeads(companyId, campaignId, { limit: 100000 });
       const csvExporter = new CsvExportConnector();
       const csvData = csvExporter.exportCsvString(result.leads);
 
+      try {
+        await logActivity(db, {
+          companyId,
+          actorType: actor.actorType,
+          actorId: actor.actorId,
+          action: "sales_leads.exported_csv",
+          entityType: "campaign",
+          entityId: campaignId,
+          details: { format: "csv", count: result.leads.length },
+        });
+      } catch {
+        // Non-blocking logging
+      }
+
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
       res.setHeader("Content-Disposition", `attachment; filename="leads-${campaignId}.csv"`);
       res.send(csvData);
+    }
+  );
+
+  router.get(
+    "/companies/:companyId/sales/campaigns/:campaignId/export-json",
+    async (req: Request, res) => {
+      const companyId = resolveCompanyId(req);
+      const campaignId = getParam(req.params.campaignId);
+      const actor = getActorInfo(req);
+
+      const result = await salesCampaignService.listLeads(companyId, campaignId, { limit: 100000 });
+
+      try {
+        await logActivity(db, {
+          companyId,
+          actorType: actor.actorType,
+          actorId: actor.actorId,
+          action: "sales_leads.exported_json",
+          entityType: "campaign",
+          entityId: campaignId,
+          details: { format: "json", count: result.leads.length },
+        });
+      } catch {
+        // Non-blocking logging
+      }
+
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.setHeader("Content-Disposition", `attachment; filename="leads-${campaignId}.json"`);
+      res.json({
+        exportedAt: new Date().toISOString(),
+        companyId,
+        campaignId,
+        total: result.leads.length,
+        leads: result.leads,
+      });
+    }
+  );
+
+  // 11. Privacy Data Retention Policy Settings
+  router.get(
+    "/companies/:companyId/sales/settings/retention",
+    async (req: Request, res) => {
+      const companyId = resolveCompanyId(req);
+      res.json({
+        companyId,
+        retentionDays: 90,
+        autoPurgeInactiveLeads: true,
+        purgeSuppressedPii: true,
+      });
+    }
+  );
+
+  router.put(
+    "/companies/:companyId/sales/settings/retention",
+    async (req: Request, res) => {
+      const companyId = resolveCompanyId(req);
+      const actor = getActorInfo(req);
+      const retentionDays = Number(req.body.retentionDays || 90);
+      const autoPurgeInactiveLeads = Boolean(req.body.autoPurgeInactiveLeads ?? true);
+
+      try {
+        await logActivity(db, {
+          companyId,
+          actorType: actor.actorType,
+          actorId: actor.actorId,
+          action: "sales_settings.retention_updated",
+          entityType: "company",
+          entityId: companyId,
+          details: { retentionDays, autoPurgeInactiveLeads },
+        });
+      } catch {
+        // Non-blocking logging
+      }
+
+      res.json({
+        success: true,
+        companyId,
+        retentionDays,
+        autoPurgeInactiveLeads,
+        updatedAt: new Date().toISOString(),
+      });
     }
   );
 

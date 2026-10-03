@@ -83,11 +83,56 @@ export function sanitizeUntrustedWebContent(rawText: string): string {
 }
 
 /**
+ * Normalizes decimal, octal, hex, and dotted representations to standard IPv4.
+ */
+export function normalizeIpString(host: string): string | null {
+  const clean = host.replace(/^\[|\]$/g, "").trim();
+  
+  // Decimal integer notation (e.g., 2130706433 -> 127.0.0.1)
+  if (/^\d+$/.test(clean)) {
+    const num = Number(clean);
+    if (num >= 0 && num <= 0xffffffff) {
+      return [
+        (num >>> 24) & 255,
+        (num >>> 16) & 255,
+        (num >>> 8) & 255,
+        num & 255,
+      ].join(".");
+    }
+  }
+
+  // Octal or Hex representation (e.g. 0177.0.0.1, 0x7f.0.0.1)
+  const parts = clean.split(".");
+  if (parts.length === 4) {
+    const parsedParts: number[] = [];
+    for (const p of parts) {
+      let val: number;
+      if (p.startsWith("0x") || p.startsWith("0X")) {
+        val = parseInt(p, 16);
+      } else if (p.startsWith("0") && p.length > 1) {
+        val = parseInt(p, 8);
+      } else {
+        val = parseInt(p, 10);
+      }
+      if (isNaN(val) || val < 0 || val > 255) return null;
+      parsedParts.push(val);
+    }
+    return parsedParts.join(".");
+  }
+
+  return null;
+}
+
+/**
  * Checks if an IP address belongs to private, loopback, link-local, or cloud metadata ranges.
+ * Supports IPv4 (dotted, decimal, octal, hex) and IPv6 (loopback, link-local, unique local, IPv4-mapped).
  */
 export function isPrivateIp(ip: string): boolean {
-  if (net.isIPv4(ip)) {
-    const parts = ip.split(".").map(Number);
+  const normalizedV4 = normalizeIpString(ip);
+  const targetIp = normalizedV4 || ip.replace(/^\[|\]$/g, "").trim();
+
+  if (net.isIPv4(targetIp)) {
+    const parts = targetIp.split(".").map(Number);
     // 127.0.0.0/8 (Loopback)
     if (parts[0] === 127) return true;
     // 10.0.0.0/8 (Private)
@@ -103,15 +148,15 @@ export function isPrivateIp(ip: string): boolean {
     // 224.0.0.0/4 (Multicast / Reserved)
     if (parts[0] >= 224) return true;
     return false;
-  } else if (net.isIPv6(ip)) {
-    const cleanIp = ip.toLowerCase();
+  } else if (net.isIPv6(targetIp)) {
+    const cleanIp = targetIp.toLowerCase();
     // ::1 (Loopback)
-    if (cleanIp === "::1" || cleanIp === "0000:0000:0000:0000:0000:0000:0000:0001") return true;
+    if (cleanIp === "::1" || cleanIp === "0:0:0:0:0:0:0:1" || cleanIp === "0000:0000:0000:0000:0000:0000:0000:0001") return true;
     // fc00::/7 (Unique local)
     if (cleanIp.startsWith("fc") || cleanIp.startsWith("fd")) return true;
     // fe80::/10 (Link local)
-    if (cleanIp.startsWith("fe80")) return true;
-    // IPv4-mapped IPv6 (::ffff:127.0.0.1)
+    if (cleanIp.startsWith("fe80") || cleanIp.startsWith("fe8") || cleanIp.startsWith("fe9") || cleanIp.startsWith("fea") || cleanIp.startsWith("feb")) return true;
+    // IPv4-mapped IPv6 (::ffff:127.0.0.1, ::ffff:7f00:1)
     if (cleanIp.includes("::ffff:")) {
       const v4Part = cleanIp.split("::ffff:")[1];
       if (v4Part && isPrivateIp(v4Part)) return true;

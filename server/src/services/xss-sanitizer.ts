@@ -1,39 +1,104 @@
 /**
- * XSS Sanitizer for agent-written Markdown, HTML email previews, and lead fields.
+ * Maintained XSS Sanitizer powered by DOMPurify (JSDOM runtime).
  * 
- * Neutralizes:
- * - <script> tags
- * - <iframe>, <object>, <embed> tags
- * - Inline event handlers (onerror, onload, onclick, onmouseover, etc.)
- * - javascript: and data:text/html URI schemes in href and src attributes
+ * Provides strict, context-specific allowlists for:
+ * 1. Markdown documents and previews
+ * 2. Mermaid diagram code and node labels
+ * 3. Lead fields (names, titles, company descriptions)
+ * 4. HTML Email templates and previews
  */
 
-export function sanitizeXss(input: string): string {
-  if (!input) return "";
+import DOMPurify from "dompurify";
+import { JSDOM } from "jsdom";
 
-  let clean = input;
+const jsdomWindow = new JSDOM("").window;
+const purify = (DOMPurify as any)(jsdomWindow as unknown as Window);
 
-  // 1. Remove script, iframe, object, embed, form, meta, link tags
-  clean = clean.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
+/**
+ * Sanitizes Markdown HTML rendering with a strict typography and formatting allowlist.
+ */
+export function sanitizeMarkdown(dirty: string): string {
+  if (!dirty) return "";
+  return purify.sanitize(dirty, {
+    ALLOWED_TAGS: [
+      "p", "br", "b", "i", "strong", "em", "strike", "s", "u",
+      "h1", "h2", "h3", "h4", "h5", "h6",
+      "ul", "ol", "li", "blockquote", "code", "pre", "hr",
+      "table", "thead", "tbody", "tr", "th", "td",
+      "span", "div", "details", "summary", "a",
+    ],
+    ALLOWED_ATTR: ["href", "title", "target", "rel", "class", "align"],
+    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+    FORBID_TAGS: ["script", "iframe", "object", "embed", "form", "meta", "style", "link", "svg"],
+    FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "onfocus", "onblur"],
+  });
+}
+
+/**
+ * Sanitizes Mermaid diagram definitions, stripping any HTML injection or scripts in labels.
+ */
+export function sanitizeMermaid(dirty: string): string {
+  if (!dirty) return "";
+  // Strip dangerous tag blocks
+  let clean = dirty.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
   clean = clean.replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "");
   clean = clean.replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, "");
   clean = clean.replace(/<embed\b[^<]*(?:(?!<\/embed>)<[^<]*)*<\/embed>/gi, "");
-
-  // 2. Neutralize inline event handlers on any HTML element (e.g. <img onerror=...>)
-  clean = clean.replace(/\s+on[a-zA-Z]+\s*=\s*(['\"]).*?\1/gi, "");
+  // Neutralize inline handlers
+  clean = clean.replace(/\s+on[a-zA-Z]+\s*=\s*['"][^'"]*['"]/gi, "");
   clean = clean.replace(/\s+on[a-zA-Z]+\s*=\s*[^ >]+/gi, "");
-
-  // 3. Neutralize dangerous pseudo-protocols in links and images
-  clean = clean.replace(/href\s*=\s*(['\"])javascript:.*?\1/gi, 'href="#"');
-  clean = clean.replace(/href\s*=\s*javascript:[^ >]+/gi, 'href="#"');
-  clean = clean.replace(/src\s*=\s*(['\"])javascript:.*?\1/gi, 'src=""');
-  clean = clean.replace(/src\s*=\s*javascript:[^ >]+/gi, 'src=""');
-  clean = clean.replace(/href\s*=\s*(['\"])data:text\/html.*?\1/gi, 'href="#"');
-  clean = clean.replace(/href\s*=\s*data:text\/html[^ >]+/gi, 'href="#"');
-
+  // Neutralize javascript: pseudo protocols
+  clean = clean.replace(/javascript\s*:/gi, "blocked-javascript:");
   return clean;
 }
 
+/**
+ * Sanitizes lead fields (plain text only: names, companies, titles, notes).
+ * Strips all HTML tags and control characters.
+ */
+export function sanitizeLeadField(dirty: string): string {
+  if (!dirty) return "";
+  const textOnly = purify.sanitize(dirty, {
+    ALLOWED_TAGS: [],
+    ALLOWED_ATTR: [],
+  });
+  return textOnly.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
+}
+
+/**
+ * Sanitizes HTML Email previews allowing email structural tables and safe styling attributes.
+ */
+export function sanitizeEmailPreview(dirty: string): string {
+  if (!dirty) return "";
+  return purify.sanitize(dirty, {
+    ALLOWED_TAGS: [
+      "p", "br", "b", "i", "strong", "em", "u",
+      "h1", "h2", "h3", "h4", "h5", "h6",
+      "ul", "ol", "li", "blockquote", "hr",
+      "table", "thead", "tbody", "tr", "th", "td",
+      "div", "span", "a", "img",
+    ],
+    ALLOWED_ATTR: [
+      "href", "src", "alt", "title", "target", "rel",
+      "width", "height", "style", "class", "align", "valign",
+      "border", "cellpadding", "cellspacing", "bgcolor",
+    ],
+    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|cid):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+    FORBID_TAGS: ["script", "iframe", "object", "embed", "form", "meta", "svg", "input", "button"],
+    FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover"],
+  });
+}
+
+/**
+ * General XSS Sanitizer for backwards compatibility
+ */
+export function sanitizeXss(input: string): string {
+  return sanitizeMarkdown(input);
+}
+
+/**
+ * Escapes raw HTML entities safely
+ */
 export function escapeHtml(unsafe: string): string {
   if (!unsafe) return "";
   return unsafe
