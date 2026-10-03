@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SalesCampaignService, type CampaignBrief } from './sales-campaign';
+import { SalesCampaignService, type CampaignBrief } from './sales-campaign.js';
 
 describe('Sales Campaign Orchestration Service', () => {
   let service: SalesCampaignService;
@@ -122,6 +122,55 @@ describe('Sales Campaign Orchestration Service', () => {
     expect(hotLeads[0].sentiment).toBe('meeting_requested');
   });
 
+  it('supports pagination, score filtering, and keyword search on leads', async () => {
+    const campaign = await service.createCampaign(validBrief);
+    await service.executeResearchStage('comp-auro-001', campaign.id);
+
+    const paginated = await service.listLeads('comp-auro-001', campaign.id, {
+      page: 1,
+      limit: 2,
+    });
+    expect(paginated.leads.length).toBeLessThanOrEqual(2);
+    expect(paginated.total).toBeGreaterThan(0);
+    expect(paginated.page).toBe(1);
+
+    const filtered = await service.listLeads('comp-auro-001', campaign.id, {
+      search: 'Bengaluru',
+    });
+    expect(filtered.total).toBeGreaterThan(0);
+  });
+
+  it('performs privacy right-to-erasure data deletion on request', async () => {
+    const campaign = await service.createCampaign(validBrief);
+    const leads = await service.executeResearchStage('comp-auro-001', campaign.id);
+    const targetLeadId = leads[0].id;
+
+    // Record hot lead as well
+    await service.recordHotLead({
+      companyId: 'comp-auro-001',
+      campaignId: campaign.id,
+      leadId: targetLeadId,
+      companyName: leads[0].companyName,
+      contactName: leads[0].decisionMakerName,
+      contactEmail: leads[0].email,
+      replySnippet: 'Interest confirmed',
+      sentiment: 'positive',
+    });
+
+    const delResult = await service.deleteLead('comp-auro-001', targetLeadId);
+    expect(delResult.success).toBe(true);
+    expect(delResult.deletedLeadId).toBe(targetLeadId);
+    expect(delResult.scrubbedFields).toContain('email');
+
+    // Confirm lead is gone from campaign
+    const remaining = await service.listLeads('comp-auro-001', campaign.id);
+    expect(remaining.leads.find((l) => l.id === targetLeadId)).toBeUndefined();
+
+    // Confirm lead is gone from hot leads
+    const hotLeads = await service.getHotLeads('comp-auro-001');
+    expect(hotLeads.find((hl) => hl.leadId === targetLeadId)).toBeUndefined();
+  });
+
   it('maintains deterministic SHA-256 global email suppression', async () => {
     const res = await service.addSuppression('OptOut@Example.com');
     expect(res.success).toBe(true);
@@ -133,3 +182,4 @@ describe('Sales Campaign Orchestration Service', () => {
     expect(notSuppressed).toBe(false);
   });
 });
+

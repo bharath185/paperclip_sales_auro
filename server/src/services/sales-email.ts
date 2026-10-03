@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import type { Db } from "@paperclipai/db";
-import { emailSendPolicies, emailGlobalSuppressions } from "@paperclipai/db";
+import { emailGlobalSuppressions } from "@paperclipai/db";
 import { eq } from "drizzle-orm";
 import type { SalesLead } from "./sales-research.js";
 
@@ -21,9 +21,17 @@ export interface RenderedEmail {
   bodyHtml: string;
   unsubscribeUrl: string;
   physicalAddress: string;
+  legalBusinessName: string;
   headers: Record<string, string>;
   isSuppressed: boolean;
   status: "pending_approval" | "approved" | "sent" | "failed" | "suppressed";
+}
+
+export interface SenderIdentity {
+  senderName: string;
+  senderEmail: string;
+  legalBusinessName: string;
+  physicalAddress: string;
 }
 
 export interface EmailSendPolicyConfig {
@@ -31,25 +39,22 @@ export interface EmailSendPolicyConfig {
   dryRun: boolean;
   requireHumanApproval: boolean;
   dailyLimit: number;
-  senderName: string;
-  senderEmail: string;
-  physicalAddress: string;
+  senderIdentity: SenderIdentity;
   warmupDayCount: number;
   maxPerDomainPerHour: number;
 }
 
-export const DEFAULT_PHYSICAL_ADDRESS = "Project Auro Technologies, 4th Floor, Tech Park, Outer Ring Road, Bengaluru, Karnataka 560103, India";
-
-export const DEFAULT_SALES_EMAIL_CONFIG: Omit<EmailSendPolicyConfig, "companyId"> = {
-  dryRun: true,
-  requireHumanApproval: true,
-  dailyLimit: 50,
-  senderName: "Varun Sharma",
-  senderEmail: "outreach@projectauro.com",
-  physicalAddress: DEFAULT_PHYSICAL_ADDRESS,
-  warmupDayCount: 14,
-  maxPerDomainPerHour: 3,
-};
+export function validateSenderIdentity(identity?: Partial<SenderIdentity>): {
+  valid: boolean;
+  missingFields: string[];
+} {
+  const missing: string[] = [];
+  if (!identity?.senderName?.trim()) missing.push("senderName");
+  if (!identity?.senderEmail?.trim() || !identity.senderEmail.includes("@")) missing.push("senderEmail");
+  if (!identity?.legalBusinessName?.trim()) missing.push("legalBusinessName");
+  if (!identity?.physicalAddress?.trim()) missing.push("physicalAddress");
+  return { valid: missing.length === 0, missingFields: missing };
+}
 
 export const DEFAULT_3_TOUCH_SEQUENCE: EmailSequenceStep[] = [
   {
@@ -69,7 +74,7 @@ Would you be open to a brief 10-minute introductory conversation next Tuesday or
 
 Best regards,
 {{sender_name}}
-Project Auro`,
+{{legal_business_name}}`,
   },
   {
     stepNumber: 2,
@@ -80,7 +85,7 @@ Project Auro`,
 
 Following up on my previous note. I wanted to share a quick metric:
 
-A precision manufacturing facility in Peenya recently deployed our automated compliance and tooling coordination pipeline, cutting sprint cycle times by 35% within 60 days.
+A precision manufacturing facility recently deployed our automated compliance and tooling coordination pipeline, cutting sprint cycle times by 35% within 60 days.
 
 Given {{company_name}}'s focus on {{sub_segment}}, I thought this benchmark might be relevant to your team's current goals.
 
@@ -88,7 +93,7 @@ Do you have 10 minutes this week for a quick walkthrough?
 
 Best regards,
 {{sender_name}}
-Project Auro`,
+{{legal_business_name}}`,
   },
   {
     stepNumber: 3,
@@ -105,7 +110,7 @@ Wishing you and {{company_name}} continued success.
 
 Best regards,
 {{sender_name}}
-Project Auro`,
+{{legal_business_name}}`,
   },
 ];
 
@@ -114,9 +119,31 @@ export function hashEmailAddress(email: string): string {
   return crypto.createHash("sha256").update(normalized).digest("hex");
 }
 
+export function generateHmacUnsubscribeToken(
+  email: string,
+  companyId: string,
+  secret: string = process.env.APP_ENCRYPTION_KEY || "auro-unsubscribe-hmac-salt"
+): string {
+  const normalized = email.trim().toLowerCase();
+  const hmac = crypto.createHmac("sha256", secret).update(`${companyId}:${normalized}`).digest("hex");
+  return `unsub_${companyId.slice(0, 8)}_${hmac.slice(0, 24)}`;
+}
+
+export function verifyHmacUnsubscribeToken(
+  email: string,
+  companyId: string,
+  token: string,
+  secret: string = process.env.APP_ENCRYPTION_KEY || "auro-unsubscribe-hmac-salt"
+): boolean {
+  if (!token || !email || !companyId) return false;
+  const expected = generateHmacUnsubscribeToken(email, companyId, secret);
+  if (token.length !== expected.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(token), Buffer.from(expected));
+}
+
+// Legacy alias for compatibility
 export function generateUnsubscribeToken(email: string, companyId: string): string {
-  const hash = hashEmailAddress(email);
-  return `unsub_${companyId.slice(0, 8)}_${hash.slice(0, 16)}`;
+  return generateHmacUnsubscribeToken(email, companyId);
 }
 
 export function calculateWarmupDailyLimit(dayNumber: number, baseDailyLimit: number = 50): number {
@@ -135,50 +162,60 @@ export function renderEmailTemplate(
     lead: SalesLead;
     senderName: string;
     senderEmail: string;
+    legalBusinessName: string;
     physicalAddress: string;
     unsubscribeUrl: string;
   },
 ): string {
   let rendered = template;
   rendered = rendered.replace(/\{\{company_name\}\}/g, data.lead.companyName);
-  rendered = rendered.replace(/\{\{contact_name\}\}/g, data.lead.decisionMakerName.split(" ")[0] || data.lead.decisionMakerName);
-  rendered = rendered.replace(/\{\{title\}\}/g, data.lead.decisionMakerTitle);
+  rendered = rendered.replace(/\{\{contact_name\}\}/g, (data.lead.contactName || data.lead.decisionMakerName || "").split(" ")[0] || "there");
+  rendered = rendered.replace(/\{\{title\}\}/g, data.lead.contactTitle || data.lead.decisionMakerTitle || "");
   rendered = rendered.replace(/\{\{industry\}\}/g, data.lead.industry);
   rendered = rendered.replace(/\{\{sub_segment\}\}/g, data.lead.subSegment || data.lead.industry);
-  rendered = rendered.replace(/\{\{location\}\}/g, data.lead.location);
+  rendered = rendered.replace(/\{\{location\}\}/g, data.lead.locationCity || data.lead.location);
   rendered = rendered.replace(/\{\{sender_name\}\}/g, data.senderName);
   rendered = rendered.replace(/\{\{sender_email\}\}/g, data.senderEmail);
+  rendered = rendered.replace(/\{\{legal_business_name\}\}/g, data.legalBusinessName);
   rendered = rendered.replace(/\{\{physical_address\}\}/g, data.physicalAddress);
   rendered = rendered.replace(/\{\{unsubscribe_url\}\}/g, data.unsubscribeUrl);
   return rendered;
 }
 
 /**
- * Renders full 3-touch sequence for a single lead with statutory compliance footers.
+ * Renders full 3-touch sequence for a single lead with statutory compliance footers and RFC 8058 headers.
  */
 export function renderLeadSequence(
   lead: SalesLead,
   options?: {
     customSteps?: EmailSequenceStep[];
+    senderIdentity?: Partial<SenderIdentity>;
     senderName?: string;
     senderEmail?: string;
+    legalBusinessName?: string;
     physicalAddress?: string;
     appBaseUrl?: string;
   },
 ): RenderedEmail[] {
   const steps = options?.customSteps || DEFAULT_3_TOUCH_SEQUENCE;
-  const senderName = options?.senderName || "Varun Sharma";
-  const senderEmail = options?.senderEmail || "outreach@projectauro.com";
-  const physicalAddress = options?.physicalAddress || DEFAULT_PHYSICAL_ADDRESS;
+  const senderName = options?.senderIdentity?.senderName || options?.senderName || "Campaign Lead";
+  const senderEmail = options?.senderIdentity?.senderEmail || options?.senderEmail || "sales@company.org";
+  const legalBusinessName = options?.senderIdentity?.legalBusinessName || options?.legalBusinessName || "Organization";
+  const physicalAddress = options?.senderIdentity?.physicalAddress || options?.physicalAddress || "Organization Address";
   const appBaseUrl = options?.appBaseUrl || "https://app.projectauro.com";
-  const unsubToken = generateUnsubscribeToken(lead.email, lead.companyId);
-  const unsubscribeUrl = `${appBaseUrl}/api/email/unsubscribe?token=${unsubToken}&email=${encodeURIComponent(lead.email)}`;
+  
+  const unsubToken = generateHmacUnsubscribeToken(lead.email || lead.contactEmail || "", lead.companyId);
+  const recipientEmail = (lead.email || lead.contactEmail || "").trim();
+  const unsubscribeUrl = `${appBaseUrl}/api/companies/${lead.companyId}/sales/opt-out?token=${unsubToken}&email=${encodeURIComponent(recipientEmail)}`;
+  
+  const senderDomain = senderEmail.includes("@") ? senderEmail.split("@")[1] : "example.com";
 
   return steps.map((step) => {
     const context = {
       lead,
       senderName,
       senderEmail,
+      legalBusinessName,
       physicalAddress,
       unsubscribeUrl,
     };
@@ -186,7 +223,7 @@ export function renderLeadSequence(
     const subject = renderEmailTemplate(step.subjectTemplate, context);
     const bodyText = renderEmailTemplate(step.bodyTemplate, context);
 
-    const statutoryFooterText = `\n\n---\nYou are receiving this email as a business communication for ${lead.companyName}.\n${physicalAddress}\nUnsubscribe: ${unsubscribeUrl}`;
+    const statutoryFooterText = `\n\n---\nYou are receiving this email as a business communication for ${lead.companyName}.\n${legalBusinessName}\n${physicalAddress}\nUnsubscribe: ${unsubscribeUrl}`;
     const fullBodyText = `${bodyText}${statutoryFooterText}`;
 
     const bodyHtml = `
@@ -194,23 +231,25 @@ export function renderLeadSequence(
   <p>${bodyText.replace(/\n\n/g, "</p><p>").replace(/\n/g, "<br/>")}</p>
   <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 24px 0 12px 0;" />
   <p style="font-size: 11px; color: #6b7280;">
-    You are receiving this email as a commercial communication for ${lead.companyName}.<br/>
-    ${physicalAddress}<br/>
-    <a href="${unsubscribeUrl}" style="color: #059669; text-decoration: underline;">Unsubscribe from future communications</a>
+    You are receiving this commercial communication for ${lead.companyName}.<br/>
+    <strong>${legalBusinessName}</strong> &bull; ${physicalAddress}<br/>
+    <a href="${unsubscribeUrl}" style="color: #059669; text-decoration: underline;">Unsubscribe (1-click)</a>
   </p>
 </div>`.trim();
 
     return {
       stepNumber: step.stepNumber,
-      to: lead.email,
+      to: recipientEmail,
       from: `${senderName} <${senderEmail}>`,
       subject,
       bodyText: fullBodyText,
       bodyHtml,
       unsubscribeUrl,
       physicalAddress,
+      legalBusinessName,
       headers: {
-        "List-Unsubscribe": `<${unsubscribeUrl}>`,
+        "List-Unsubscribe": `<${unsubscribeUrl}>, <mailto:optout@${senderDomain}?subject=unsubscribe>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
         "X-Entity-Ref-ID": `${lead.companyId}:${lead.id}:touch-${step.stepNumber}`,
       },
       isSuppressed: false,
@@ -297,24 +336,50 @@ export function salesEmailService(db: Db) {
 
   async function validatePreSendCompliance(
     email: RenderedEmail,
-    options?: { maxPerDomainPerHour?: number },
+    options?: {
+      maxPerDomainPerHour?: number;
+      dryRun?: boolean;
+      senderIdentity?: Partial<SenderIdentity>;
+    },
   ): Promise<{ allowed: boolean; reason?: string }> {
-    // 1. Check global suppression list (opted out or bounced)
+    const isDryRun = options?.dryRun ?? true;
+
+    // 1. In live mode, validate sender identity completeness
+    if (!isDryRun) {
+      const identityValidation = validateSenderIdentity(options?.senderIdentity || {
+        senderName: email.from.split("<")[0]?.trim(),
+        senderEmail: email.from.includes("<") ? email.from.split("<")[1]?.replace(">", "").trim() : email.from,
+        legalBusinessName: email.legalBusinessName,
+        physicalAddress: email.physicalAddress,
+      });
+
+      if (!identityValidation.valid) {
+        return {
+          allowed: false,
+          reason: `Sender identity incomplete for live email sending. Missing required fields: ${identityValidation.missingFields.join(", ")}. Configure under Settings > Sales > Sender Identity.`,
+        };
+      }
+    }
+
+    // 2. Check global suppression list (opted out or bounced) - case-insensitive and trimmed
     const suppressed = await isEmailSuppressed(email.to);
     if (suppressed) {
       return { allowed: false, reason: `Recipient ${email.to} is globally suppressed (opted out or bounced).` };
     }
 
-    // 2. Validate mandatory statutory footer presence
+    // 3. Validate mandatory statutory footer and RFC 8058 header presence
     if (!email.bodyText.includes("Unsubscribe:") || !email.bodyText.includes(email.unsubscribeUrl)) {
       return { allowed: false, reason: "Email missing required statutory unsubscribe link." };
     }
     if (!email.bodyText.includes(email.physicalAddress)) {
       return { allowed: false, reason: "Email missing required physical postal address." };
     }
+    if (!email.headers["List-Unsubscribe"] || !email.headers["List-Unsubscribe-Post"]) {
+      return { allowed: false, reason: "Email missing RFC 8058 List-Unsubscribe headers." };
+    }
 
-    // 3. Per-domain throttling check
-    const maxPerHour = options?.maxPerDomainPerHour || DEFAULT_SALES_EMAIL_CONFIG.maxPerDomainPerHour;
+    // 4. Per-domain throttling check
+    const maxPerHour = options?.maxPerDomainPerHour || 3;
     const throttleCheck = domainThrottler.isAllowed(email.to, maxPerHour);
     if (!throttleCheck.allowed) {
       return {
@@ -338,24 +403,26 @@ export function salesEmailService(db: Db) {
     email: RenderedEmail,
     config: Partial<EmailSendPolicyConfig> = {},
   ): Promise<{ success: boolean; dryRun: boolean; mailSinkId?: string; reason?: string }> {
-    const effectiveConfig = { ...DEFAULT_SALES_EMAIL_CONFIG, ...config };
+    const isDryRun = config.dryRun ?? true;
 
     // Strict compliance validation
     const compliance = await validatePreSendCompliance(email, {
-      maxPerDomainPerHour: effectiveConfig.maxPerDomainPerHour,
+      maxPerDomainPerHour: config.maxPerDomainPerHour || 3,
+      dryRun: isDryRun,
+      senderIdentity: config.senderIdentity,
     });
     if (!compliance.allowed) {
-      return { success: false, dryRun: effectiveConfig.dryRun, reason: compliance.reason };
+      return { success: false, dryRun: isDryRun, reason: compliance.reason };
     }
 
     // In dry-run mode or test environment, route to local mail sink
-    if (effectiveConfig.dryRun || process.env.NODE_ENV === "test") {
+    if (isDryRun || process.env.NODE_ENV === "test") {
       const sinkResult = mailSink.send(email);
       return { success: true, dryRun: true, mailSinkId: sinkResult.sinkId };
     }
 
     // In production live mode (requires human approval gate passed)
-    if (effectiveConfig.requireHumanApproval && email.status !== "approved") {
+    if (config.requireHumanApproval && email.status !== "approved") {
       return { success: false, dryRun: false, reason: "Human approval required before dispatch." };
     }
 

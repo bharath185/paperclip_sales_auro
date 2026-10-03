@@ -23,7 +23,6 @@ describe("SuppressionManager", () => {
 
   it("renders suppression list showing zero raw PII and active SHA-256 hashed suppression entries", async () => {
     vi.mocked(salesApi.listSuppressions).mockResolvedValue({
-      companyId: "comp-1",
       suppressions: [
         "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90",
         "f9e8d7c6b5a4039281706f5e4d3c2b1a0f9e8d7c6b5a4039281706f5e4d3c2b1",
@@ -45,7 +44,6 @@ describe("SuppressionManager", () => {
 
   it("adds new email to suppression list and shows confirmation with SHA-256 hash", async () => {
     vi.mocked(salesApi.listSuppressions).mockResolvedValue({
-      companyId: "comp-1",
       suppressions: [],
     });
     vi.mocked(salesApi.addSuppression).mockResolvedValue({

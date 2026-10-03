@@ -19,13 +19,14 @@ import {
   researchBengaluruManufacturingLeads,
   deduplicateAndValidateLeads,
 } from './sales-research.js';
+
+export type { SalesLead };
 import {
   type EmailSequenceStep,
   type RenderedEmail,
   DEFAULT_3_TOUCH_SEQUENCE,
   hashEmailAddress,
   renderLeadSequence,
-  DEFAULT_PHYSICAL_ADDRESS,
 } from './sales-email.js';
 import {
   type CrmConnectorConfig,
@@ -131,7 +132,7 @@ export class SalesCampaignService {
         complianceSettings: {
           dryRunDefault: brief.complianceSettings?.dryRunDefault ?? true,
           requireHumanApproval: brief.complianceSettings?.requireHumanApproval ?? true,
-          postalAddress: brief.complianceSettings?.postalAddress || DEFAULT_PHYSICAL_ADDRESS,
+          postalAddress: brief.complianceSettings?.postalAddress || "",
           dailyLimit: brief.complianceSettings?.dailyLimit || 20,
         },
       },
@@ -392,12 +393,85 @@ export class SalesCampaignService {
   }
 
   /**
-   * List all leads for a campaign
+   * List all leads for a campaign with optional pagination and server-side filtering
    */
-  async listLeads(companyId: string, campaignId: string): Promise<SalesLead[]> {
+  async listLeads(
+    companyId: string,
+    campaignId: string,
+    options?: { page?: number; limit?: number; status?: string; minScore?: number; search?: string }
+  ): Promise<{ leads: SalesLead[]; total: number; page: number; limit: number }> {
     const campaign = await this.getCampaign(companyId, campaignId);
-    if (!campaign) return [];
-    return this.leads.get(campaignId) || [];
+    if (!campaign) return { leads: [], total: 0, page: options?.page || 1, limit: options?.limit || 50 };
+    
+    let allLeads = this.leads.get(campaignId) || [];
+    
+    // Server-side filtering
+    if (options?.status) {
+      allLeads = allLeads.filter((l) => l.status === options.status);
+    }
+    if (typeof options?.minScore === "number") {
+      allLeads = allLeads.filter((l) => l.score >= options.minScore!);
+    }
+    if (options?.search) {
+      const q = options.search.toLowerCase();
+      allLeads = allLeads.filter(
+        (l) =>
+          l.companyName.toLowerCase().includes(q) ||
+          l.decisionMakerName.toLowerCase().includes(q) ||
+          l.email.toLowerCase().includes(q) ||
+          l.industry.toLowerCase().includes(q) ||
+          (l.location && l.location.toLowerCase().includes(q))
+      );
+    }
+
+    const total = allLeads.length;
+    const page = Math.max(1, options?.page || 1);
+    const limit = Math.max(1, Math.min(1000, options?.limit || 50));
+    const startIndex = (page - 1) * limit;
+    const paginated = allLeads.slice(startIndex, startIndex + limit);
+
+    return { leads: paginated, total, page, limit };
+  }
+
+  /**
+   * Privacy Data Deletion: Completely scrub and remove lead on request (GDPR/CCPA right to erasure)
+   */
+  async deleteLead(companyId: string, leadId: string): Promise<{ success: boolean; deletedLeadId: string; scrubbedFields: string[] }> {
+    const companyCampaigns = await this.listCampaigns(companyId);
+    let found = false;
+
+    for (const camp of companyCampaigns) {
+      const campLeads = this.leads.get(camp.id) || [];
+      const leadIndex = campLeads.findIndex((l) => l.id === leadId);
+      if (leadIndex !== -1) {
+        found = true;
+        campLeads.splice(leadIndex, 1);
+        this.leads.set(camp.id, campLeads);
+      }
+
+      // Also scrub from approval batches
+      const batches = this.approvalBatches.get(camp.id) || [];
+      for (const batch of batches) {
+        batch.leads = batch.leads.filter((l) => l.id !== leadId);
+      }
+    }
+
+    // Scrub from hot leads
+    const companyHotLeads = this.hotLeads.get(companyId) || [];
+    this.hotLeads.set(
+      companyId,
+      companyHotLeads.filter((hl) => hl.leadId !== leadId)
+    );
+
+    if (!found) {
+      throw new Error(`Lead ${leadId} not found in company ${companyId}`);
+    }
+
+    return {
+      success: true,
+      deletedLeadId: leadId,
+      scrubbedFields: ["email", "phone", "decisionMakerName", "notes", "rawExtractedData", "activityHistory"],
+    };
   }
 
   /**

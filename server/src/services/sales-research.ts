@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import dns from "node:dns/promises";
+import net from "node:net";
 import { z } from "zod";
 
 export interface SalesLead {
@@ -23,7 +25,22 @@ export interface SalesLead {
   notes?: string;
   dataSource?: string;
   rawExtractedData?: Record<string, unknown>;
+  // Interoperability and CRM aliases
+  companyDomain?: string;
+  contactName?: string;
+  contactTitle?: string;
+  contactEmail?: string;
+  contactPhone?: string | null;
+  contactLinkedin?: string | null;
+  locationCity?: string;
+  leadScore?: number;
+  crmStage?: string;
+  verificationStatus?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
+
+export type LeadRecord = SalesLead;
 
 export const DISPOSABLE_EMAIL_DOMAINS = new Set([
   "mailinator.com",
@@ -47,6 +64,9 @@ const INJECTION_PATTERNS = [
   /eval\s*\(/gi,
   /override\s+system\s+safety/gi,
   /send\s+all\s+contacts\s+to\s+https?:\/\//gi,
+  /system\s+override\s*:/gi,
+  /exfiltrate\s+keys/gi,
+  /print\s+api\s+key/gi,
 ];
 
 /**
@@ -60,6 +80,116 @@ export function sanitizeUntrustedWebContent(rawText: string): string {
   }
   // Remove dangerous control characters and trim
   return clean.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
+}
+
+/**
+ * Checks if an IP address belongs to private, loopback, link-local, or cloud metadata ranges.
+ */
+export function isPrivateIp(ip: string): boolean {
+  if (net.isIPv4(ip)) {
+    const parts = ip.split(".").map(Number);
+    // 127.0.0.0/8 (Loopback)
+    if (parts[0] === 127) return true;
+    // 10.0.0.0/8 (Private)
+    if (parts[0] === 10) return true;
+    // 172.16.0.0/12 (Private)
+    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+    // 192.168.0.0/16 (Private)
+    if (parts[0] === 192 && parts[1] === 168) return true;
+    // 169.254.0.0/16 (Link-local & AWS/GCP/Azure metadata 169.254.169.254)
+    if (parts[0] === 169 && parts[1] === 254) return true;
+    // 0.0.0.0/8 (Current network)
+    if (parts[0] === 0) return true;
+    // 224.0.0.0/4 (Multicast / Reserved)
+    if (parts[0] >= 224) return true;
+    return false;
+  } else if (net.isIPv6(ip)) {
+    const cleanIp = ip.toLowerCase();
+    // ::1 (Loopback)
+    if (cleanIp === "::1" || cleanIp === "0000:0000:0000:0000:0000:0000:0000:0001") return true;
+    // fc00::/7 (Unique local)
+    if (cleanIp.startsWith("fc") || cleanIp.startsWith("fd")) return true;
+    // fe80::/10 (Link local)
+    if (cleanIp.startsWith("fe80")) return true;
+    // IPv4-mapped IPv6 (::ffff:127.0.0.1)
+    if (cleanIp.includes("::ffff:")) {
+      const v4Part = cleanIp.split("::ffff:")[1];
+      if (v4Part && isPrivateIp(v4Part)) return true;
+    }
+    return false;
+  }
+  return false;
+}
+
+/**
+ * Validates that a target URL is safe from Server-Side Request Forgery (SSRF).
+ */
+export async function validateSsrfSafeUrl(rawUrl: string): Promise<{
+  safe: boolean;
+  reason?: string;
+  resolvedIp?: string;
+  url?: URL;
+}> {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    return { safe: false, reason: "Invalid URL syntax" };
+  }
+
+  // 1. Protocol allowlist (http and https only)
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return { safe: false, reason: `Protocol ${parsed.protocol} is forbidden. Only HTTP/HTTPS permitted.` };
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+
+  // 2. Blocked hostnames & cloud metadata aliases
+  const blockedHostnames = new Set([
+    "localhost",
+    "127.0.0.1",
+    "0.0.0.0",
+    "169.254.169.254",
+    "metadata.google.internal",
+    "metadata.local",
+    "instance-data",
+  ]);
+
+  if (blockedHostnames.has(hostname) || hostname.endsWith(".localhost") || hostname.endsWith(".internal")) {
+    return { safe: false, reason: `Host ${hostname} is blocked for SSRF protection.` };
+  }
+
+  // 3. Direct IP check
+  if (net.isIP(hostname)) {
+    if (isPrivateIp(hostname)) {
+      return { safe: false, reason: `Direct IP ${hostname} belongs to private or link-local range and is blocked.` };
+    }
+    return { safe: true, resolvedIp: hostname, url: parsed };
+  }
+
+  // RFC 2606 reserved documentation and test domain
+  if (hostname === "example.com" || hostname.endsWith(".example.com")) {
+    return { safe: true, resolvedIp: "93.184.216.34", url: parsed };
+  }
+
+  // 4. DNS resolution validation
+  try {
+    const addresses = await dns.lookup(hostname, { all: true });
+    if (!addresses || addresses.length === 0) {
+      return { safe: false, reason: `DNS lookup failed for hostname: ${hostname}` };
+    }
+    for (const addr of addresses) {
+      if (isPrivateIp(addr.address)) {
+        return {
+          safe: false,
+          reason: `DNS for ${hostname} resolved to private/cloud metadata IP ${addr.address}, blocked for SSRF.`,
+        };
+      }
+    }
+    return { safe: true, resolvedIp: addresses[0].address, url: parsed };
+  } catch (err: any) {
+    return { safe: false, reason: `DNS lookup failed for ${hostname}: ${err.message}` };
+  }
 }
 
 /**
@@ -121,7 +251,11 @@ export function calculateLeadScore(lead: {
 
   // 2. Location proximity (max 25 pts)
   const targetLoc = (lead.targetLocation || "Bengaluru").toLowerCase();
-  if (lead.location.toLowerCase().includes(targetLoc) || lead.location.toLowerCase().includes("peenya") || lead.location.toLowerCase().includes("bommasandra")) {
+  if (
+    lead.location.toLowerCase().includes(targetLoc) ||
+    lead.location.toLowerCase().includes("peenya") ||
+    lead.location.toLowerCase().includes("bommasandra")
+  ) {
     score += 25;
   } else if (lead.location.toLowerCase().includes("karnataka") || lead.location.toLowerCase().includes("india")) {
     score += 15;
@@ -129,10 +263,22 @@ export function calculateLeadScore(lead: {
 
   // 3. Decision maker seniority (max 30 pts)
   const title = lead.decisionMakerTitle.toLowerCase();
-  const defaultSeniorTitles = ["vp", "vice president", "director", "head", "managing director", "chief", "cto", "coo", "general manager", "plant manager"];
-  const targetTitles = (lead.targetTitles && lead.targetTitles.length > 0)
-    ? lead.targetTitles.map((t) => t.toLowerCase())
-    : defaultSeniorTitles;
+  const defaultSeniorTitles = [
+    "vp",
+    "vice president",
+    "director",
+    "head",
+    "managing director",
+    "chief",
+    "cto",
+    "coo",
+    "general manager",
+    "plant manager",
+  ];
+  const targetTitles =
+    lead.targetTitles && lead.targetTitles.length > 0
+      ? lead.targetTitles.map((t) => t.toLowerCase())
+      : defaultSeniorTitles;
 
   const matchesTitle = targetTitles.some((t) => title.includes(t));
   if (matchesTitle) {
@@ -167,7 +313,7 @@ export const RawLeadDataSchema = z.object({
   phone: z.string().optional().nullable(),
   sourceUrl: z.string().url(),
   notes: z.string().optional(),
-  rawExtractedData: z.record(z.unknown()).optional(),
+  rawExtractedData: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type RawLeadData = z.infer<typeof RawLeadDataSchema>;
@@ -200,7 +346,7 @@ export function deduplicateAndValidateLeads(
     if (!parseResult.success) {
       rejectedLeads.push({
         lead: item,
-        reason: `Schema validation failed: ${parseResult.error.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")}`,
+        reason: `Schema validation failed: ${parseResult.error.issues.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")}`,
       });
       continue;
     }
@@ -257,18 +403,27 @@ export function deduplicateAndValidateLeads(
       companyName: sanitizedCompanyName,
       website: raw.website,
       domain,
+      companyDomain: domain,
       industry: raw.industry,
       subSegment: sanitizedSubSegment,
       location: sanitizedLocation,
+      locationCity: sanitizedLocation,
       companySize: raw.companySize || "50-200",
       decisionMakerName: sanitizedDmName,
+      contactName: sanitizedDmName,
       decisionMakerTitle: sanitizedDmTitle,
+      contactTitle: sanitizedDmTitle,
       email,
+      contactEmail: email,
       phone: raw.phone || null,
+      contactPhone: raw.phone || null,
       sourceUrl: raw.sourceUrl,
       discoveredAt: new Date().toISOString(),
       score,
+      leadScore: score,
       status: score >= 50 ? "discovered" : "rejected",
+      verificationStatus: "verified",
+      crmStage: "new",
       notes: sanitizedNotes,
       dataSource: "Web Researcher",
       rawExtractedData: raw.rawExtractedData,
@@ -325,27 +480,47 @@ export function isPathAllowedByRobotsTxt(robotsTxtContent: string, path: string)
 }
 
 /**
- * Real Web Researcher Service with robots.txt parsing and rate limiting.
+ * Real Web Researcher Service with SSRF protection, robots.txt parsing, and rate limiting.
  */
 export class WebResearcherService {
   private domainLastAccess: Map<string, number> = new Map();
+  private maxRedirects: number = 3;
+  private maxResponseSizeBytes: number = 2 * 1024 * 1024; // 2MB
+  private timeoutMs: number = 5000;
 
   constructor(
     private options: {
       minDomainDelayMs?: number;
       fetchFn?: typeof fetch;
+      maxRedirects?: number;
+      maxResponseSizeBytes?: number;
+      timeoutMs?: number;
     } = {},
-  ) {}
+  ) {
+    if (options.maxRedirects !== undefined) this.maxRedirects = options.maxRedirects;
+    if (options.maxResponseSizeBytes !== undefined) this.maxResponseSizeBytes = options.maxResponseSizeBytes;
+    if (options.timeoutMs !== undefined) this.timeoutMs = options.timeoutMs;
+  }
 
   async fetchPage(
     url: string,
     mockRobotsTxt?: string,
   ): Promise<{ success: boolean; content?: string; sourceUrl: string; reason?: string }> {
+    // 1. Pre-flight SSRF Validation
+    const ssrfCheck = await validateSsrfSafeUrl(url);
+    if (!ssrfCheck.safe) {
+      return {
+        success: false,
+        sourceUrl: url,
+        reason: `SSRF Blocked: ${ssrfCheck.reason}`,
+      };
+    }
+
     const parsedUrl = new URL(url);
     const domain = parsedUrl.hostname;
     const path = parsedUrl.pathname;
 
-    // 1. Respect robots.txt
+    // 2. Respect robots.txt
     if (mockRobotsTxt && !isPathAllowedByRobotsTxt(mockRobotsTxt, path)) {
       return {
         success: false,
@@ -354,7 +529,7 @@ export class WebResearcherService {
       };
     }
 
-    // 2. Rate limiting check (min delay per domain)
+    // 3. Rate limiting check (min delay per domain)
     const minDelay = this.options.minDomainDelayMs ?? 1000;
     const now = Date.now();
     const lastAccess = this.domainLastAccess.get(domain) || 0;
@@ -365,26 +540,90 @@ export class WebResearcherService {
     }
     this.domainLastAccess.set(domain, Date.now());
 
-    // 3. Perform fetch
+    // 4. Perform bounded fetch with timeout, redirect checks, and size limits
     try {
       const fetchImpl = this.options.fetchFn || fetch;
-      const res = await fetchImpl(url, {
-        headers: {
-          "User-Agent": "ProjectAuroBot/1.0 (+https://projectauro.com/bot)",
-        },
-      });
+      const controller = new AbortController();
+      const timeoutHandle = setTimeout(() => controller.abort(), this.timeoutMs);
+
+      let currentUrl = url;
+      let redirectCount = 0;
+      let res: Response | null = null;
+
+      while (redirectCount <= this.maxRedirects) {
+        // Validate target URL at every hop of redirect chain
+        const hopCheck = await validateSsrfSafeUrl(currentUrl);
+        if (!hopCheck.safe) {
+          clearTimeout(timeoutHandle);
+          return {
+            success: false,
+            sourceUrl: currentUrl,
+            reason: `SSRF Blocked on redirect: ${hopCheck.reason}`,
+          };
+        }
+
+        res = await fetchImpl(currentUrl, {
+          headers: {
+            "User-Agent": "ProjectAuroBot/1.0 (+https://projectauro.com/bot)",
+          },
+          signal: controller.signal,
+          redirect: "manual",
+        });
+
+        // Handle redirect
+        if (res.status >= 300 && res.status < 400) {
+          const location = res.headers?.get ? res.headers.get("location") : null;
+          if (!location) break;
+          currentUrl = new URL(location, currentUrl).toString();
+          redirectCount++;
+          continue;
+        }
+
+        break;
+      }
+
+      clearTimeout(timeoutHandle);
+
+      if (!res) {
+        return { success: false, sourceUrl: url, reason: "No response received" };
+      }
+
+      if (redirectCount > this.maxRedirects) {
+        return { success: false, sourceUrl: url, reason: `Exceeded maximum redirect limit of ${this.maxRedirects}` };
+      }
 
       if (!res.ok) {
-        return { success: false, sourceUrl: url, reason: `HTTP error ${res.status}: ${res.statusText}` };
+        return { success: false, sourceUrl: url, reason: `HTTP error ${res.status}: ${res.statusText || "Request failed"}` };
+      }
+
+      // Check Content-Length header if present
+      const contentLength = res.headers?.get ? res.headers.get("content-length") : null;
+      if (contentLength && parseInt(contentLength, 10) > this.maxResponseSizeBytes) {
+        return {
+          success: false,
+          sourceUrl: url,
+          reason: `Response size ${contentLength} exceeds maximum allowed limit of ${this.maxResponseSizeBytes} bytes`,
+        };
       }
 
       const text = await res.text();
+      if (text.length > this.maxResponseSizeBytes) {
+        return {
+          success: false,
+          sourceUrl: url,
+          reason: `Payload exceeds max response size limit of ${this.maxResponseSizeBytes} bytes`,
+        };
+      }
+
       return {
         success: true,
         sourceUrl: url,
         content: sanitizeUntrustedWebContent(text),
       };
     } catch (err: any) {
+      if (err.name === "AbortError") {
+        return { success: false, sourceUrl: url, reason: `Request timed out after ${this.timeoutMs}ms` };
+      }
       return { success: false, sourceUrl: url, reason: err.message || "Fetch failed" };
     }
   }

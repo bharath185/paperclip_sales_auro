@@ -197,24 +197,33 @@ export function governanceRoutes(db: Db) {
   router.post("/governance/org/create", validate(createOrgSchema), handleCreateOrg);
 
   // Read all versioned governance prompts
-  router.get("/governance/prompts", async (_req, res) => {
+  const handleListPrompts = async (req: Request, res: any) => {
+    resolveCompanyId(req);
     const prompts = await orgSvc.listAllGovernancePrompts();
     res.json(prompts);
-  });
+  };
+  router.get("/companies/:companyId/governance/prompts", handleListPrompts);
+  router.get("/governance/prompts", handleListPrompts);
 
   // Read a single role prompt
-  router.get("/governance/prompts/:role", async (req, res) => {
+  const handleGetPrompt = async (req: Request, res: any) => {
+    resolveCompanyId(req);
     const role = req.params.role as GovernanceRole;
     const content = await orgSvc.readGovernancePromptFile(role);
     res.json({ role, content });
-  });
+  };
+  router.get("/companies/:companyId/governance/prompts/:role", handleGetPrompt);
+  router.get("/governance/prompts/:role", handleGetPrompt);
 
   // Edit a versioned governance prompt
-  router.put("/governance/prompts/:role", validate(updatePromptSchema), async (req, res) => {
+  const handlePutPrompt = async (req: Request, res: any) => {
+    resolveCompanyId(req);
     const role = req.params.role as GovernanceRole;
     await orgSvc.writeGovernancePromptFile(role, req.body.content);
     res.json({ success: true, role, content: req.body.content });
-  });
+  };
+  router.put("/companies/:companyId/governance/prompts/:role", validate(updatePromptSchema), handlePutPrompt);
+  router.put("/governance/prompts/:role", validate(updatePromptSchema), handlePutPrompt);
 
   // Submit Project Kickoff brief
   const handleKickoff = async (req: Request, res: any) => {

@@ -129,11 +129,27 @@ export function exportCombinedMarkdown(
 }
 
 /**
- * Escapes CSV values with double quotes and comma handling.
+ * Neutralizes CSV/Excel formula injection for cells starting with =, +, -, @, tab, or CR.
  */
-function escapeCsv(value: string | number | undefined | null): string {
+export function sanitizeCsvFormula(value: string | number | undefined | null): string {
+  if (value === undefined || value === null) return "";
+  let str = String(value);
+  if (str.length > 0) {
+    const firstChar = str.charAt(0);
+    if (firstChar === "=" || firstChar === "+" || firstChar === "-" || firstChar === "@" || firstChar === "\t" || firstChar === "\r") {
+      str = `'${str}`;
+    }
+  }
+  return str;
+}
+
+/**
+ * Escapes CSV values with formula neutralization and double quotes handling.
+ */
+export function escapeCsv(value: string | number | undefined | null): string {
   if (value === undefined || value === null) return '""';
-  const str = String(value).replace(/"/g, '""');
+  const sanitized = sanitizeCsvFormula(value);
+  const str = String(sanitized).replace(/"/g, '""');
   return `"${str}"`;
 }
 
@@ -262,8 +278,18 @@ ${rowsXml}
 </Workbook>`;
 }
 
+export function sanitizeXmlFormula(unsafe: string): string {
+  if (!unsafe) return "";
+  const firstChar = unsafe.charAt(0);
+  if (firstChar === "=" || firstChar === "+" || firstChar === "-" || firstChar === "@" || firstChar === "\t" || firstChar === "\r") {
+    return `'${unsafe}`;
+  }
+  return unsafe;
+}
+
 function escapeXml(unsafe: string): string {
-  return unsafe
+  const sanitized = sanitizeXmlFormula(unsafe);
+  return sanitized
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")

@@ -75,7 +75,7 @@ describe("SalesApprovalsInbox", () => {
 
   it("renders pending approval batch and lets operator approve verified prospects", async () => {
     vi.mocked(salesApi.listApprovalBatches).mockResolvedValue([mockBatch]);
-    vi.mocked(salesApi.approveBatch).mockResolvedValue({ success: true, count: 1 });
+    vi.mocked(salesApi.approveBatch).mockResolvedValue(mockBatch);
 
     const onBatchApproved = vi.fn();
 

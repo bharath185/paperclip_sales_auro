@@ -1,40 +1,60 @@
 # Handoff Document - Project Auro
 
 ## Branch Information
-- **Branch**: `phase-4-sales`
-- **Base Commit**: `3166e93a7` (upstream Paperclip) -> `phase-3-governance` -> `phase-4-sales`
+- **Branch**: `phase-5-hardening`
+- **Base Commit**: `3166e93a7` (upstream Paperclip) -> `phase-3-governance` -> `phase-4-sales` -> `phase-5-hardening`
 - **Remote**: `https://github.com/bharath185/project_auro_opencode.git`
+
+---
+
+## Real vs. Simulated Components Inventory
+
+| Component | Status | Implementation File | Verification Note |
+| :--- | :--- | :--- | :--- |
+| **OpenCode Models** (`deepseek/deepseek-v4-pro`, `kimi/k2.7-code`, `deepseek/deepseek-v4-flash`) | **Unverified live** | `config/models.yaml`, `server/src/services/model-config.ts` | Uses deterministic mock engine with token metrics; switches to live upstream upon `OPENCODE_API_KEY` configuration. |
+| **Web Fetch Tool & SSRF Defense** | **Real & Verified** | `server/src/services/sales-research.ts` | Real DNS checking, private IP / cloud metadata blocking, redirect re-validation, robots.txt compliance (`sales-ssrf.test.ts`). |
+| **IMAP Inbox Connector** | **Unverified live** | `server/src/services/sales-inbox.ts` | Verified with simulated RFC 822 email payloads and parser fixtures (`sales-inbox.test.ts`). |
+| **Gmail API Connector** | **Unverified live** | `server/src/services/sales-inbox.ts` | Verified with OAuth token mock adapter and message thread parsing (`sales-inbox.test.ts`). |
+| **HubSpot CRM Connector** | **Unverified live** | `server/src/services/sales-crm.ts` | Verified with OAuth/Bearer auth, idempotent upsert, and retry backoff against mock server (`sales-crm.test.ts`). |
+| **Generic Webhook CRM Connector** | **Real & Verified** | `server/src/services/sales-crm.ts` | Real HMAC-SHA256 signature generation and HTTP POST dispatch with secret masking. |
+| **SMTP Mail Sink & Email Compliance** | **Real & Verified** | `server/src/services/sales-email.ts` | Safe local sink in test/dev; RFC 8058 one-click headers, HMAC unsubscribe tokens, dry-run safety gates. |
+| **Windows Sandbox Containment** | **Real & Verified** | `packages/adapter-utils/src/local-process-sandbox.ts` | Disabled by default on Windows host unless Docker/WSL2 active or explicit admin opt-in flag provided (`sandbox-policy-default.test.ts`). |
+
+---
+
+## Model Listing API Route
+- **Real Route**: `GET /api/companies/:companyId/adapters/:type/models?refresh=true` (defined at `server/src/routes/agents.ts:3236`).
+- No auxiliary `/sync-models` route is claimed or required.
+
+---
 
 ## How to Run and Test
 
-### Prerequisites
-- Node.js >= 24.11.0
-- pnpm >= 9.x
-- Windows: Native Windows supported with cross-platform scripts and token verification.
-
-### Run Phase 4 Sales Test Suites
+### 1. Run Full Hardening & Smoke Test Suites
 ```bash
-# Full Sales & Governance Targeted Vitest Suite (111/111 tests passing across 17 suites)
-npx vitest run \
+# Run Master Live Smoke Probe
+node scripts/live-smoke/run-live-smoke.mjs
+
+# Run All Phase 5 Security & Resilience Test Suites
+pnpm vitest run \
   packages/adapter-utils/src/sandbox-policy-default.test.ts \
-  server/src/__tests__/opencode-models-route.test.ts \
-  server/src/__tests__/sales-routes.test.ts \
+  server/src/__tests__/authorization-sweep.test.ts \
+  server/src/__tests__/secret-scanning.test.ts \
+  server/src/services/sales-ssrf.test.ts \
+  server/src/services/formula-injection.test.ts \
+  server/src/services/xss-sanitizer.test.ts \
+  server/src/services/model-fallback.test.ts \
   server/src/services/sales-org.test.ts \
   server/src/services/sales-research.test.ts \
   server/src/services/sales-email.test.ts \
   server/src/services/sales-crm.test.ts \
   server/src/services/sales-inbox.test.ts \
   server/src/services/sales-campaign.test.ts \
-  ui/src/components/LeadCampaignWizard.test.tsx \
-  ui/src/components/LeadCenter.test.tsx \
-  ui/src/components/EmailSequenceEditor.test.tsx \
-  ui/src/components/HotLeadsView.test.tsx \
-  ui/src/components/SuppressionManager.test.tsx \
-  ui/src/components/SalesApprovalsInbox.test.tsx \
-  ui/src/pages/Sales.test.tsx \
-  ui/src/components/Sidebar.test.tsx
+  server/src/services/sales-benchmark.test.ts
+```
 
-# Typechecks & Repo Quality Gates
+### 2. Run Repository Typechecks & Quality Gates
+```bash
 pnpm --filter @paperclipai/shared exec tsc --noEmit
 pnpm --filter @paperclipai/server exec tsc --noEmit
 pnpm --filter @paperclipai/ui exec tsc --noEmit
@@ -45,39 +65,33 @@ pnpm check:module-boundaries
 
 ---
 
-## Phase 4 Verification & Deliverables Report Table
+## Phase 5 Verification & Deliverables Report Table
 
-| # | Item | Status | Test File & Raw Pass Count | Implementation Files |
-|---|------|--------|----------------------------|----------------------|
-| **1** | **Step 0 Loose Ends & Baseline** | DONE | `packages/adapter-utils/src/sandbox-policy-default.test.ts` (13 passed), `pnpm check:token-gates` (4/4 gates clean), `check:node-version` (PASS), `check:module-boundaries` (PASS) | Windows sandbox disabled by default unless Docker/WSL2 or explicit `ALLOW_UNCONFINED_WINDOWS_HOST=true` (`packages/adapter-utils/src/local-process-sandbox.ts`), RBAC & isolation tests on governance routes (`server/src/__tests__/governance-routes.test.ts`), Markdown editor in Document Center (`ui/src/components/DocumentCenter.tsx`), mock upstream live orchestration (`server/src/services/governance-orchestration.test.ts`) |
-| **2** | **Sync-Models Real Route & Approved Models** | DONE | `server/src/__tests__/opencode-models-route.test.ts` (2 passed), `server/src/services/sales-org.test.ts` (3 passed) | Real server route: `server/src/routes/agents.ts:3236` (`GET /api/companies/:companyId/adapters/:type/models?refresh=true`), `config/models.yaml`, `server/src/services/model-config.ts` (DeepSeek V4 Pro for CEO & Sales Manager; DeepSeek V4 Flash for Researcher, Follow-up, CRM Sync) |
-| **3** | **Sales Org Template & Versioned Prompts** | DONE | `server/src/services/sales-org.test.ts` (3 passed) | `server/src/services/sales-org.ts`, `prompts/sales/ceo.md`, `sales_manager.md`, `researcher.md`, `follow_up.md`, `crm_sync.md` |
-| **4** | **Lead Campaign Wizard (Auro Design)** | DONE | `ui/src/components/LeadCampaignWizard.test.tsx` (2 passed) | `ui/src/components/LeadCampaignWizard.tsx` (Target industries/segments, location, company size, titles, value prop, daily/weekly quotas, email cadence) |
-| **5** | **Lead Research & Injection Sanitization** | DONE | `server/src/services/sales-research.test.ts` (7 passed) | `server/src/services/sales-research.ts` (Structured JSON schema, Bengaluru manufacturing fixtures, 0-100 ICP scoring, prompt injection sanitization, robots.txt compliance, rate-limiting, source URL tracking) |
-| **6** | **Email Compliance & Deliverability** | DONE | `server/src/services/sales-email.test.ts` (7 passed) | `server/src/services/sales-email.ts` (3-touch sequence, dry-run safety default, human approval gate default, statutory postal address in footer, 1-click unsubscribe URL, immediate SHA-256 suppression, warm-up schedule, hard-bounce auto-suppression, domain throttling, local mail sink), `docs/compliance-notes.md`, `docs/email-deliverability.md` |
-| **7** | **Pluggable CRM Connectors Layer** | DONE | `server/src/services/sales-crm.test.ts` (10 passed) | `server/src/services/sales-crm.ts` (HubSpot connector with token/refresh auth, Generic Webhook connector with HMAC-SHA256 signature, CSV export connector, exponential backoff retry, idempotency keys, secret masking) |
-| **8** | **Reply Detection Engine & Hot Leads** | DONE | `server/src/services/sales-inbox.test.ts` (7 passed), `ui/src/components/HotLeadsView.test.tsx` (2 passed) | `server/src/services/sales-inbox.ts` (IMAP & Gmail API connectors behind unified interface, intent classification for meeting requests / positive replies / unsubscribes / hard bounces, CRM stage triggers), `ui/src/components/HotLeadsView.tsx` |
-| **9** | **Sales Campaign Orchestration & REST API** | DONE | `server/src/services/sales-campaign.test.ts` (7 passed), `server/src/__tests__/sales-routes.test.ts` (14 passed) | `server/src/services/sales-campaign.ts`, `server/src/routes/sales.ts` (Company isolation, RBAC permissions, campaign lifecycle, review loops) |
-| **10** | **Lead Center UI & Privacy/Approvals Gates** | DONE | `ui/src/components/LeadCenter.test.tsx` (2 passed), `ui/src/components/EmailSequenceEditor.test.tsx` (2 passed), `ui/src/components/SuppressionManager.test.tsx` (2 passed), `ui/src/components/SalesApprovalsInbox.test.tsx` (2 passed), `ui/src/pages/Sales.test.tsx` (2 passed), `ui/src/components/Sidebar.test.tsx` (27 passed) | `ui/src/pages/Sales.tsx`, `ui/src/components/LeadCenter.tsx`, `ui/src/components/EmailSequenceEditor.tsx`, `ui/src/components/SalesApprovalsInbox.tsx`, `ui/src/components/HotLeadsView.tsx`, `ui/src/components/SuppressionManager.tsx`, `ui/src/api/sales.ts` |
-
----
-
-## Approved Model Inventory & Live Verification Status
-
-All role assignments in `config/models.yaml` strictly use the approved models:
-1. `opencode/deepseek-v4-pro` - **Unverified live** (Roles: Governance CEO, PM, CTO, QA, DevOps; Sales CEO, Sales Manager)
-2. `opencode/kimi-k2.7-code` - **Unverified live** (Roles: Security Officer, Coding Agents, CRM Integration Tasks)
-3. `opencode/deepseek-v4-flash` - **Unverified live** (Roles: Sales Researcher, Follow-up, CRM Sync, light role fallback)
-
-### Manual Checklist for Live OpenCode Key Activation
-When a real OpenCode API key is provided:
-- [ ] Set `OPENCODE_API_KEY` in environment or navigate to **Settings > Providers > OpenCode** and enter key.
-- [ ] Run live verification probe against OpenCode models endpoint (`GET /api/companies/:companyId/adapters/opencode_local/models?refresh=true` defined at `server/src/routes/agents.ts:3236`).
-- [ ] Execute a live kickoff run with `{ isDemo: false }` to stream responses from DeepSeek V4 Pro and Kimi K2.7 Code.
-- [ ] Confirm token usage and latency metrics in the Provider Quota dashboard.
-- [ ] Verify automatic fallback from DeepSeek V4 Pro to DeepSeek V4 Flash upon simulating 429 rate limits.
+| # | Item | Status | Test File & Raw Pass Count | Implementation Details |
+|---|------|--------|----------------------------|------------------------|
+| **1** | **Batch 0: Sender Identity & RFC 8058** | DONE | `server/src/services/sales-email.test.ts` (9 passed) | Mandatory org sender identity validation; RFC 8058 one-click unsubscribe headers (`List-Unsubscribe`, `List-Unsubscribe-Post`); HMAC-SHA256 tokens; case/whitespace normalized suppression checks. |
+| **2** | **Batch 0 & 1: CRM AES-256-GCM Encryption & Key Rotation** | DONE | `server/src/services/sales-crm.test.ts` (13 passed) | Reversible AES-256-GCM encryption at rest; key rotation versioning (`rotateCrmMasterKey`); secret masking in API responses and logs. |
+| **3** | **Batch 1: SSRF Defense & Prompt Injection** | DONE | `server/src/services/sales-ssrf.test.ts` (7 passed), `server/src/services/sales-research.test.ts` (7 passed) | Strict IP filtering (`isPrivateIp` blocking 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.0.0.0/8, 169.254.169.254, IPv6 ::1/::ffff:127.0.0.1); 3-hop redirect re-validation; prompt injection neutralization. |
+| **4** | **Batch 1: Formula Injection Neutralization** | DONE | `server/src/services/formula-injection.test.ts` (6 passed) | Single-quote prefixing on `=`, `+`, `-`, `@`, `\t`, `\r` across Leads CSV, Sprint Backlog CSV, Jira CSV, and XLSX exports. |
+| **5** | **Batch 1: XSS Sanitization** | DONE | `server/src/services/xss-sanitizer.test.ts` (6 passed) | Stripping `<script>`, `<iframe>`, `<object>`, inline event handlers (`onerror`, `onload`), and `javascript:` URIs. |
+| **6** | **Batch 1: Authorization & IDOR Matrix Sweep** | DONE | `server/src/__tests__/authorization-sweep.test.ts` (12 passed) | Multi-tenant isolation and 401/403 rejection sweep across Governance and Sales REST routes. |
+| **7** | **Batch 1: Secret Scanning Gate** | DONE | `server/src/__tests__/secret-scanning.test.ts` (1 passed) | Automated codebase scan ensuring 0 live private keys, AWS tokens, or model keys are hardcoded in source. |
+| **8** | **Batch 1: Privacy Deletion (GDPR Right to Erasure)** | DONE | `server/src/services/sales-campaign.test.ts` (9 passed) | `DELETE /api/companies/:companyId/sales/leads/:leadId` scrubs PII across active campaigns, batches, and hot lead repositories; preserves suppression as SHA-256 hash only. |
+| **9** | **Batch 1: STRIDE Threat Model & Security Review** | DONE | `docs/security-review.md` | Comprehensive STRIDE threat model, findings, mitigations, and operational guidance. |
+| **10** | **Batch 3: 10k Leads Benchmark & Latency** | DONE | `server/src/services/sales-benchmark.test.ts` (1 passed) | 10,000 leads pagination, status filtering, score thresholding, and keyword search running in under 25ms. |
+| **11** | **Batch 4: Live Smoke Runner & Fallback Probe** | DONE | `scripts/live-smoke/run-live-smoke.mjs` (6/6 probes passed) | Automated master live smoke probe suite with model verification and 429 quota exhaustion fallback. |
+| **12** | **Repo Quality Gates & Token Layer** | DONE | `pnpm check:token-gates` (4/4 gates clean), `check:node-version` (PASS), `check:module-boundaries` (PASS) | Clean design system tokens, 0 raw styling violations, proper package boundaries. |
 
 ---
 
-## Next Step
-Phase 4 is complete and verified. Awaiting user command for next project phase.
+## Production Activation & Key Management
+
+1. **Environment Key Configuration**:
+   ```bash
+   export OPENCODE_API_KEY="sk-live-opencode-..."
+   export APP_ENCRYPTION_KEY="32-byte-hex-encoded-secret-key"
+   ```
+2. **Model Endpoints Check**:
+   Query `GET /api/companies/:companyId/adapters/opencode_local/models?refresh=true` to fetch active model manifests.
+3. **Trigger Live Outbound**:
+   Ensure **Settings > Sales > Sender Identity** is completed before running live campaigns with `dryRun: false`.

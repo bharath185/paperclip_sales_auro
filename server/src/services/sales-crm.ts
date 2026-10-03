@@ -10,8 +10,8 @@
  * - Credential masking in logs
  */
 
-import { createHash } from 'crypto';
-import type { LeadRecord } from './sales-research';
+import { createHash, createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
+import type { LeadRecord } from './sales-research.js';
 
 export type CrmProviderType = 'hubspot' | 'generic_webhook' | 'csv_export';
 
@@ -44,9 +44,17 @@ export interface TimelineEvent {
   metadata?: Record<string, unknown>;
 }
 
+export interface EncryptedCrmSecret {
+  scheme: 'aes-256-gcm';
+  ciphertext: string;
+  iv: string;
+  tag: string;
+}
+
 export interface CrmConnectorConfig {
   provider: CrmProviderType;
   apiKey?: string;
+  encryptedApiKey?: EncryptedCrmSecret;
   endpointUrl?: string;
   headers?: Record<string, string>;
   isMock?: boolean;
@@ -58,6 +66,65 @@ export interface CrmConnector {
   attachTimeline(leadId: string, event: TimelineEvent): Promise<CrmSyncResult>;
   updateStage(leadId: string, stage: string): Promise<CrmSyncResult>;
   getSyncStatus(leadId: string): Promise<CrmLeadStatus | null>;
+}
+
+export function resolveCrmMasterKey(overrideKey?: Buffer | string): Buffer {
+  if (overrideKey) {
+    if (Buffer.isBuffer(overrideKey)) return overrideKey;
+    if (overrideKey.length === 64 && /^[0-9a-fA-F]+$/.test(overrideKey)) {
+      return Buffer.from(overrideKey, 'hex');
+    }
+    return Buffer.from(overrideKey.padEnd(32, '0').slice(0, 32), 'utf8');
+  }
+  const fromEnv = process.env.PAPERCLIP_SECRETS_MASTER_KEY || process.env.APP_ENCRYPTION_KEY;
+  if (!fromEnv || fromEnv.trim().length === 0) {
+    throw new Error('Master encryption key is missing (set APP_ENCRYPTION_KEY or PAPERCLIP_SECRETS_MASTER_KEY)');
+  }
+  const trimmed = fromEnv.trim();
+  if (trimmed.length === 64 && /^[0-9a-fA-F]+$/.test(trimmed)) {
+    return Buffer.from(trimmed, 'hex');
+  }
+  return Buffer.from(trimmed.padEnd(32, '0').slice(0, 32), 'utf8');
+}
+
+export function encryptCrmCredentials(apiKey: string, masterKey?: Buffer | string): EncryptedCrmSecret {
+  if (!apiKey || apiKey.trim().length === 0) {
+    throw new Error('Cannot encrypt empty API key');
+  }
+  const key = resolveCrmMasterKey(masterKey);
+  const iv = randomBytes(12);
+  const cipher = createCipheriv('aes-256-gcm', key, iv);
+  let ciphertext = cipher.update(apiKey, 'utf8', 'hex');
+  ciphertext += cipher.final('hex');
+  const tag = cipher.getAuthTag().toString('hex');
+
+  return {
+    scheme: 'aes-256-gcm',
+    ciphertext,
+    iv: iv.toString('hex'),
+    tag,
+  };
+}
+
+export function decryptCrmCredentials(secret: EncryptedCrmSecret, masterKey?: Buffer | string): string {
+  if (!secret?.ciphertext || !secret?.iv || !secret?.tag) {
+    throw new Error('Invalid encrypted secret payload');
+  }
+  const key = resolveCrmMasterKey(masterKey);
+  const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(secret.iv, 'hex'));
+  decipher.setAuthTag(Buffer.from(secret.tag, 'hex'));
+  let decrypted = decipher.update(secret.ciphertext, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  return decrypted;
+}
+
+export function rotateCrmMasterKey(
+  secret: EncryptedCrmSecret,
+  oldMasterKey: Buffer | string,
+  newMasterKey: Buffer | string
+): EncryptedCrmSecret {
+  const plain = decryptCrmCredentials(secret, oldMasterKey);
+  return encryptCrmCredentials(plain, newMasterKey);
 }
 
 /**
@@ -278,6 +345,7 @@ export class GenericWebhookConnector implements CrmConnector {
           provider: 'generic_webhook',
           stage: lead.crmStage || 'new',
           lastSyncedAt: new Date().toISOString(),
+          syncState: 'synced',
           metadata: { endpointUrl: endpoint }
         });
         return externalId;
@@ -365,6 +433,21 @@ export class GenericWebhookConnector implements CrmConnector {
 }
 
 /**
+ * Neutralizes CSV/Excel formula injection for cells starting with =, +, -, @, tab, or CR.
+ */
+export function sanitizeCsvFormula(value: unknown): string {
+  if (value === undefined || value === null) return '';
+  let str = String(value);
+  if (str.length > 0) {
+    const firstChar = str.charAt(0);
+    if (firstChar === '=' || firstChar === '+' || firstChar === '-' || firstChar === '@' || firstChar === '\t' || firstChar === '\r') {
+      str = `'${str}`;
+    }
+  }
+  return str;
+}
+
+/**
  * CSV Exporter Connector
  */
 export class CsvExportConnector implements CrmConnector {
@@ -412,7 +495,8 @@ export class CsvExportConnector implements CrmConnector {
       externalId: `csv_${lead.id}`,
       provider: 'csv_export',
       stage: lead.crmStage || 'new',
-      lastSyncedAt: new Date().toISOString()
+      lastSyncedAt: new Date().toISOString(),
+      syncState: 'synced'
     };
   }
 
@@ -458,7 +542,8 @@ export class CsvExportConnector implements CrmConnector {
       l.crmStage || (l.status === 'approved' ? 'qualified' : 'new'),
       l.createdAt || l.discoveredAt || new Date().toISOString()
     ].map(field => {
-      const escaped = String(field ?? '').replace(/"/g, '""');
+      const sanitized = sanitizeCsvFormula(field);
+      const escaped = sanitized.replace(/"/g, '""');
       return `"${escaped}"`;
     }).join(','));
 

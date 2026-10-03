@@ -26,6 +26,7 @@ describe("HotLeadsView", () => {
       sentiment: "meeting_requested",
       replySnippet: "Wants to connect next Tuesday at 3 PM to evaluate automation tooling.",
       detectedAt: "2026-10-02T14:30:00Z",
+      notifiedHuman: true,
     },
   ];
 
