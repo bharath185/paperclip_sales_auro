@@ -56,7 +56,7 @@ export function AuroTopbar({ mobile = false }: { mobile?: boolean }) {
       >
         <Menu aria-hidden="true" />
       </Button>
-      <Link to={selectedCompany ? `/${selectedCompany.issuePrefix}/dashboard` : "/companies"} className="shrink-0" aria-label="Project Auro home">
+      <Link to={selectedCompany ? `/${selectedCompany.issuePrefix}/sales` : "/companies"} className="shrink-0" aria-label="Project Auro home">
         <AuroLogo className="hidden sm:inline-flex" markClassName="size-7" />
         <img src="/auro-mark.svg" alt="Project Auro" className="size-8 sm:hidden" />
       </Link>
@@ -72,7 +72,7 @@ export function AuroTopbar({ mobile = false }: { mobile?: boolean }) {
         aria-label="Search Project Auro (Control or Command K)"
       >
         <Command className="hidden size-4 shrink-0 sm:block" aria-hidden="true" />
-        <span className="min-w-0 flex-1 truncate text-left">Search tasks, agents, goals…</span>
+        <span className="min-w-0 flex-1 truncate text-left">Search leads, campaigns, agents…</span>
         <kbd className="hidden shrink-0 rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-(length:--text-nano) text-muted-foreground sm:inline">Ctrl K</kbd>
       </Button>
       <Button

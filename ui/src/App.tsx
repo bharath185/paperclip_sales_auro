@@ -149,10 +149,10 @@ function ProductionSurface({ children }: { children: ReactNode }) {
 function boardRoutes(streamlinedUiEnabled: boolean) {
   return (
     <>
-      <Route index element={<Navigate to="dashboard" replace />} />
-      <Route path="dashboard" element={<Dashboard />} />
+      <Route index element={<Navigate to="sales" replace />} />
+      <Route path="dashboard" element={<Navigate to="/sales" replace />} />
       <Route path="about" element={<AboutPage />} />
-      <Route path="dashboard/live" element={<DashboardLive />} />
+      <Route path="dashboard/live" element={<Navigate to="/sales" replace />} />
       <Route
         path="timeline"
         element={streamlinedUiEnabled ? <AuditCompatibilityRedirect to="/activity/timeline" /> : <Timeline />}
