@@ -74,6 +74,23 @@ export function Sales() {
 
   const safeCampaigns = Array.isArray(campaigns) ? campaigns : [];
 
+  const [startingCampId, setStartingCampId] = useState<string | null>(null);
+
+  const handleStartCampaign = async (camp: CampaignRecordDto, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setStartingCampId(camp.id);
+    try {
+      await salesApi.runResearch(companyId, camp.id);
+      await fetchCampaigns();
+      setSelectedCampaign(camp);
+      setActiveTab("lead_center");
+    } catch (err) {
+      console.error("Failed to start campaign research", err);
+    } finally {
+      setStartingCampId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Banner */}
@@ -215,15 +232,22 @@ export function Sales() {
               {safeCampaigns.map((camp) => (
                 <Card
                   key={camp.id}
-                  className={`border-border bg-card hover:border-primary/50 transition-colors cursor-pointer ${
-                    selectedCampaign?.id === camp.id ? "ring-1 ring-primary" : ""
+                  className={`border-border bg-card hover:border-primary/50 transition-all cursor-pointer flex flex-col justify-between ${
+                    selectedCampaign?.id === camp.id ? "ring-2 ring-primary border-transparent" : ""
                   }`}
                   onClick={() => setSelectedCampaign(camp)}
                 >
                   <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-start gap-2">
                       <CardTitle className="text-sm font-semibold text-foreground">{camp.name}</CardTitle>
-                      <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30 text-xs">
+                      <Badge
+                        variant="secondary"
+                        className={
+                          camp.status === "running"
+                            ? "bg-primary/20 text-primary border-primary/30 text-xs uppercase tracking-wide font-medium"
+                            : "bg-muted text-muted-foreground text-xs uppercase tracking-wide font-medium"
+                        }
+                      >
                         {camp.status}
                       </Badge>
                     </div>
@@ -247,6 +271,49 @@ export function Sales() {
                         <div className="text-base font-bold text-foreground">{camp.stats.crmSyncedCount}</div>
                         <div className="text-xs text-muted-foreground">CRM Synced</div>
                       </div>
+                    </div>
+
+                    {/* Action Bar */}
+                    <div className="pt-2 flex items-center justify-between gap-2 border-t border-border/50">
+                      {camp.status === "draft" ? (
+                        <Button
+                          size="sm"
+                          className="w-full text-xs font-semibold"
+                          disabled={startingCampId === camp.id}
+                          onClick={(e) => handleStartCampaign(camp, e)}
+                        >
+                          <Sparkles className={`mr-1.5 h-3.5 w-3.5 ${startingCampId === camp.id ? "animate-spin" : ""}`} />
+                          {startingCampId === camp.id ? "Dispatching AI Researchers..." : "▶ Start & Dispatch Researchers"}
+                        </Button>
+                      ) : (
+                        <div className="w-full flex items-center gap-2">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="flex-1 text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedCampaign(camp);
+                              setActiveTab("lead_center");
+                            }}
+                          >
+                            <Users className="mr-1.5 h-3.5 w-3.5" /> View Leads ({camp.stats.totalLeadsFound})
+                          </Button>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedCampaign(camp);
+                              setActiveTab("approvals");
+                            }}
+                          >
+                            <CheckSquare className="mr-1.5 h-3.5 w-3.5" /> Approvals Inbox
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
