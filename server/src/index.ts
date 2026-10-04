@@ -1003,6 +1003,23 @@ async function startServerWithDatabaseTeardown(
   startupListenerBound = true;
 
   try {
+    const existingComps = await db.select().from(companies);
+    if (existingComps.length === 0) {
+      const defaultCompanyId = "9a4f3774-31d3-49db-9843-25a9ef11dfe5";
+      await db.insert(companies).values({
+        id: defaultCompanyId,
+        name: "Auro Outbound Sales",
+        issuePrefix: "AURO",
+        description: "Autonomous AI Sales & Lead Generation Engine",
+        status: "active",
+      });
+      logger.info({ companyId: defaultCompanyId }, "Auto-seeded default sales organization: Auro Outbound Sales (AURO)");
+    }
+  } catch (seedErr) {
+    logger.error({ err: seedErr }, "Failed to auto-seed sales organization");
+  }
+
+  try {
     const result = await workspaceOperationService(db as any)
       .reconcileStaleRuntimeControlOperations();
     if (result.reconciled > 0) {

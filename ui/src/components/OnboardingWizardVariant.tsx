@@ -1,10 +1,7 @@
-import { OnboardingWizard } from "./OnboardingWizard";
-
 /**
- * Default onboarding wizard. Conference-room chat is now the only surface left
- * behind `enableConferenceRoomChat`; onboarding stays available without that
- * experimental flag.
+ * Onboarding wizard disabled for dedicated Sales application mode.
+ * Users land directly on the pre-configured Sales Hub.
  */
 export function OnboardingWizardVariant() {
-  return <OnboardingWizard />;
+  return null;
 }
