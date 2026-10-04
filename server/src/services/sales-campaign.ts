@@ -192,7 +192,9 @@ export class SalesCampaignService {
         subSegment: campaign.brief.subSegment,
         location: campaign.brief.location,
         targetTitles: campaign.brief.targetTitles,
-        targetCount: campaign.brief.dailyLeadQuota || 100,
+        companySize: campaign.brief.companySize,
+        offerProposition: campaign.brief.offerProposition,
+        targetCount: campaign.brief.dailyLeadQuota || 20,
       },
       campaign.brief.isDemo ?? false
     );

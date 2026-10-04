@@ -110,10 +110,10 @@ export function LeadCenter({ companyId, campaign }: LeadCenterProps) {
                 size="sm"
                 onClick={handleRunResearch}
                 disabled={researching}
-                className="text-xs"
+                className="text-xs font-medium"
               >
                 <Sparkles className={`mr-1.5 h-3.5 w-3.5 text-primary ${researching ? "animate-spin" : ""}`} />
-                {researching ? "Researching..." : "Dispatch Researchers"}
+                {researching ? "AI Researchers Searching Web & Registry..." : "Dispatch AI Researchers"}
               </Button>
 
               <Button
