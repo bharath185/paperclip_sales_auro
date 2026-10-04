@@ -812,6 +812,9 @@ export function App() {
           <Route path="skills/:skillId/studio" element={<LegacySkillStudioRedirect />} />
           <Route path="governance" element={<UnprefixedBoardRedirect />} />
           <Route path="sales" element={<UnprefixedBoardRedirect />} />
+          <Route path="company/settings" element={<UnprefixedBoardRedirect />} />
+          <Route path="company/settings/*" element={<UnprefixedBoardRedirect />} />
+          <Route path="company/*" element={<UnprefixedBoardRedirect />} />
           <Route path="settings" element={<LegacySettingsRedirect />} />
           <Route path="settings/*" element={<LegacySettingsRedirect />} />
           <Route path="agents" element={<UnprefixedBoardRedirect />} />
