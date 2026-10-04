@@ -1,0 +1,47 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: auro-opencode-app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3100}:3100"
+    environment:
+      - NODE_ENV=production
+      - PORT=3100
+      - DATABASE_URL=postgres://${POSTGRES_USER:-auro}:${POSTGRES_PASSWORD:-auro_secure_pass}@db:5432/${POSTGRES_DB:-auro_db}
+      - APP_ENCRYPTION_KEY=${APP_ENCRYPTION_KEY:-0000000000000000000000000000000000000000000000000000000000000000}
+      - OPENCODE_API_KEY=${OPENCODE_API_KEY:-}
+      - SALES_EMAIL_DRY_RUN=${SALES_EMAIL_DRY_RUN:-true}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3100/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    volumes:
+      - auro_data:/paperclip/data
+
+  db:
+    image: postgres:16-alpine
+    container_name: auro-opencode-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-auro}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-auro_secure_pass}
+      - POSTGRES_DB=${POSTGRES_DB:-auro_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-auro} -d ${POSTGRES_DB:-auro_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  auro_data:
+  postgres_data:
