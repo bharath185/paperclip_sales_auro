@@ -1978,7 +1978,9 @@ export async function researchBengaluruManufacturingLeads(
   const targetCount = criteria.targetCount || 100;
   const results: Array<Omit<SalesLead, "id" | "score" | "status" | "discoveredAt">> = [];
 
-  for (const item of REAL_BENGALURU_MANUFACTURERS) {
+  const sourceData = isDemo ? BENGALURU_MANUFACTURING_FIXTURES : REAL_BENGALURU_MANUFACTURERS;
+
+  for (const item of sourceData) {
     results.push({
       companyId: "comp-auro-001",
       campaignId: "camp-default",
@@ -1994,7 +1996,7 @@ export async function researchBengaluruManufacturingLeads(
       email: item.email,
       phone: item.phone,
       sourceUrl: item.sourceUrl,
-      dataSource: "Live Corporate Registry",
+      dataSource: isDemo ? "Demo data" : "Live Corporate Registry",
       notes: item.notes,
     });
 

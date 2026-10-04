@@ -194,7 +194,7 @@ export class SalesCampaignService {
         targetTitles: campaign.brief.targetTitles,
         targetCount: campaign.brief.dailyLeadQuota || 100,
       },
-      campaign.brief.isDemo ?? true
+      campaign.brief.isDemo ?? false
     );
 
     const existingLeads = this.leads.get(campaignId) || [];

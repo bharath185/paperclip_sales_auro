@@ -47,7 +47,7 @@ export function LeadCampaignWizard({
     dailyLeadQuota: 20,
     weeklyLeadQuota: 100,
     researcherInstances: 2,
-    isDemo: true,
+    isDemo: false,
     complianceSettings: {
       dryRunDefault: true,
       requireHumanApproval: true,
@@ -378,17 +378,35 @@ export function LeadCampaignWizard({
 
                 <div className="flex items-center justify-between pt-2 border-t border-border">
                   <div className="space-y-0.5">
-                    <Label className="text-sm font-medium">Deliverability Dry-Run Mode</Label>
+                    <Label className="text-sm font-medium">Data Discovery Source</Label>
                     <p className="text-xs text-muted-foreground">
-                      Simulates sequence generation and delivery without firing live SMTP sockets.
+                      Fetch live real-time industrial directory & web enrichment data.
                     </p>
                   </div>
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-border"
-                    checked={formData.complianceSettings?.dryRunDefault}
-                    onChange={(e) => updateCompliance("dryRunDefault", e.target.checked)}
-                  />
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant="outline"
+                      className={`cursor-pointer text-xs ${
+                        !formData.isDemo
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                      onClick={() => updateField("isDemo", false)}
+                    >
+                      Live Real-Time
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className={`cursor-pointer text-xs ${
+                        formData.isDemo
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                      onClick={() => updateField("isDemo", true)}
+                    >
+                      Demo Data
+                    </Badge>
+                  </div>
                 </div>
               </div>
 
