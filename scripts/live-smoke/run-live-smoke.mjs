@@ -20,7 +20,22 @@ const rootDir = path.resolve(__dirname, "../..");
 
 const args = process.argv.slice(2);
 const isDryCheck = args.includes("--dry-check");
-const apiKey = process.env.OPENCODE_API_KEY;
+
+// Load from .env if present
+let apiKey = process.env.OPENCODE_API_KEY;
+if (!apiKey) {
+  const envPath = path.join(rootDir, ".env");
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, "utf-8");
+    for (const line of envContent.split("\n")) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("OPENCODE_API_KEY=")) {
+        apiKey = trimmed.slice("OPENCODE_API_KEY=".length).trim();
+        break;
+      }
+    }
+  }
+}
 
 console.log("\n=======================================================");
 console.log("   AURO OPENCODE - LIVE SMOKE & INTEGRATION PROBE");
