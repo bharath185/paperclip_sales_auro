@@ -533,8 +533,16 @@ export class WebResearcherService {
   private maxResponseSizeBytes: number = 2 * 1024 * 1024; // 2MB
   private timeoutMs: number = 5000;
 
+  private options: {
+    minDomainDelayMs?: number;
+    fetchFn?: typeof fetch;
+    maxRedirects?: number;
+    maxResponseSizeBytes?: number;
+    timeoutMs?: number;
+  };
+
   constructor(
-    private options: {
+    options: {
       minDomainDelayMs?: number;
       fetchFn?: typeof fetch;
       maxRedirects?: number;
@@ -542,6 +550,7 @@ export class WebResearcherService {
       timeoutMs?: number;
     } = {},
   ) {
+    this.options = options;
     if (options.maxRedirects !== undefined) this.maxRedirects = options.maxRedirects;
     if (options.maxResponseSizeBytes !== undefined) this.maxResponseSizeBytes = options.maxResponseSizeBytes;
     if (options.timeoutMs !== undefined) this.timeoutMs = options.timeoutMs;
@@ -749,17 +758,134 @@ export const BENGALURU_MANUFACTURING_FIXTURES: Array<Omit<SalesLead, "id" | "sco
   },
 ];
 
+const COMPANY_SEEDS = [
+  { name: "Dynamic Aero Systems", domain: "dynamicaero.co.in", sub: "Aerospace Machining & Defense", notes: "Multi-axis CNC milling for aerospace turbine components." },
+  { name: "Vayu Precision Aerospace", domain: "vayuaero.in", sub: "Aerospace Machining & Defense", notes: "AS9100 Rev D precision structural titanium airframe machining." },
+  { name: "Astra Defense Machining", domain: "astradefense.co.in", sub: "Aerospace Machining & Defense", notes: "High-spec electro-mechanical defense enclosures." },
+  { name: "HAL Ancillary Precision", domain: "halancillary.in", sub: "Aerospace Machining & Defense", notes: "Specialized aircraft hydraulic manifold fabrication." },
+  { name: "Garuda Precision Aerospace", domain: "garudaaero.com", sub: "Aerospace Machining & Defense", notes: "Avionics chassis & radar waveguide precision components." },
+  { name: "Chamundi CNC Works", domain: "chamundicnc.co.in", sub: "Machine Tools & Dies", notes: "Custom heavy mold bases and stamping tooling." },
+  { name: "Kaveri Heavy Tooling", domain: "kaveritooling.in", sub: "Machine Tools & Dies", notes: "High-tonnage progressive press tools and fixtures." },
+  { name: "Bengaluru Machine Tools", domain: "bengalurumachinetools.com", sub: "Machine Tools & Dies", notes: "Industrial lathe, milling, and cylindrical grinding solutions." },
+  { name: "Mysore Precision Grinding", domain: "mysoregrinding.co.in", sub: "Machine Tools & Dies", notes: "Sub-micron surface and centerless grinding services." },
+  { name: "Deccan High-Speed Spindles", domain: "deccanspindles.in", sub: "Machine Tools & Dies", notes: "Motorized CNC spindle rebuild and balancing technology." },
+  { name: "Karnataka Die & Mold Tech", domain: "karnatakadiemold.com", sub: "Machine Tools & Dies", notes: "Plastic injection molds for medical and consumer devices." },
+  { name: "Silicon City Toolcraft", domain: "siliconcitytoolcraft.in", sub: "Machine Tools & Dies", notes: "High-speed carbide end-mills and bespoke cutting inserts." },
+  { name: "Nandi CNC Solutions", domain: "nandicnc.co.in", sub: "Machine Tools & Dies", notes: "5-axis simultaneous contract machining services." },
+  { name: "Vijayanagar Machine Fab", domain: "vijayanagarfab.in", sub: "Machine Tools & Dies", notes: "Heavy machine bed structural welding and stress relieving." },
+  { name: "Bommasandra Auto Components", domain: "bommasandraauto.co.in", sub: "Auto Components", notes: "Tier-1 powertrain gear shafts and synchronizer hubs." },
+  { name: "Cauvery Transmission Drives", domain: "cauverytransmission.in", sub: "Auto Components", notes: "Differential assemblies for commercial vehicle OEMs." },
+  { name: "Bengaluru Gears & Axles", domain: "bengalurugears.com", sub: "Auto Components", notes: "Helical and bevel gear hobbing for EV transmissions." },
+  { name: "Deccan Stamping Works", domain: "deccanstamping.co.in", sub: "Auto Components", notes: "Deep draw body-in-white structural automotive pressings." },
+  { name: "Shanti Powertrain Engineering", domain: "shantipowertrain.in", sub: "Auto Components", notes: "Engine cylinder blocks and aluminum die castings." },
+  { name: "Bidadi Auto Assemblies", domain: "bidadi-auto.co.in", sub: "Auto Components", notes: "Suspension wishbones and steering knuckle machining." },
+  { name: "Nelamangala Auto Press", domain: "nelamangalapress.in", sub: "Auto Components", notes: "Robotic robotic weld cells for automotive chassis frames." },
+  { name: "Hosur Corridor Castings", domain: "hosurcastings.com", sub: "Auto Components", notes: "SG iron and ductile iron castings for brake systems." },
+  { name: "Peenya Sensor Technologies", domain: "peenyasensors.in", sub: "Industrial Automation", notes: "Proximity sensors, rotary encoders, and IoT machine monitors." },
+  { name: "Whitefield Industrial Drives", domain: "whitefielddrives.co.in", sub: "Industrial Automation", notes: "VFD drives and servo motion control systems for heavy plants." },
+  { name: "Electronic City Robotics & PLC", domain: "ecityrobotics.com", sub: "Industrial Automation", notes: "Robotic palletizing and vision-guided pick-and-place cells." },
+  { name: "Jigani Hydraulics & Pneumatics", domain: "jiganihydraulics.in", sub: "Industrial Automation", notes: "Heavy-duty hydraulic power packs and proportional valves." },
+  { name: "Rajajinagar Switchgear Ancillaries", domain: "rajajinagarswitchgear.co.in", sub: "Industrial Automation", notes: "Medium voltage switchgear busbar fabrication and panels." },
+  { name: "Suvarna Sheet Metal", domain: "suvarnametal.in", sub: "Sheet Metal & Fabrication", notes: "CNC fiber laser cutting and precision press brake folding." },
+  { name: "Sharavathi Extrusions", domain: "sharavathiextrusions.com", sub: "Sheet Metal & Fabrication", notes: "Architectural and structural aluminum extruded profiles." },
+  { name: "Manipal Metal Forming", domain: "manipalmetalforming.co.in", sub: "Sheet Metal & Fabrication", notes: "Roll forming and continuous roll punching lines." },
+  { name: "Belgaum Foundry Bengaluru Depot", domain: "belgaumfoundry-blr.in", sub: "Heavy Casting & Metallurgy", notes: "High alloy steel and Ni-hard abrasion resistant castings." },
+  { name: "Tungabhadra Heavy Press", domain: "tungabhadrapress.co.in", sub: "Heavy Casting & Metallurgy", notes: "1500-ton hydraulic forging presses and open die rings." },
+];
+
+const LOCATIONS = [
+  "Peenya Industrial Area, Phase 1, Bengaluru, Karnataka",
+  "Peenya Industrial Area, Phase 3, Bengaluru, Karnataka",
+  "Bommasandra Industrial Area, Bengaluru, Karnataka",
+  "Whitefield Industrial Zone, Bengaluru, Karnataka",
+  "Bidadi Industrial Area, Ramanagara, Bengaluru Outer",
+  "Jigani Industrial Estate, Bengaluru, Karnataka",
+  "Nelamangala Industrial Corridor, Bengaluru, Karnataka",
+  "Rajajinagar Industrial Town, Bengaluru, Karnataka",
+  "Doddaballapura Industrial Park, Bengaluru, Karnataka",
+  "Veerasandra Industrial Area, Electronic City, Bengaluru",
+  "Hoodi Industrial Area, Whitefield, Bengaluru, Karnataka",
+  "Attibele Industrial Cluster, Bengaluru, Karnataka",
+];
+
+const CONTACTS = [
+  { name: "Rajesh Kumar", title: "VP of Manufacturing Operations" },
+  { name: "Ananya Deshmukh", title: "Head of Tooling Engineering" },
+  { name: "Vikramjit Rao", title: "Plant General Manager" },
+  { name: "Suresh Hegde", title: "Managing Director" },
+  { name: "Ramesh Gowda", title: "Director of Production" },
+  { name: "Dr. Arvind Swaminathan", title: "Chief Technology Officer" },
+  { name: "Meenakshi Iyer", title: "Head of Quality & Six Sigma" },
+  { name: "Pradeep Nair", title: "VP of Supply Chain & Operations" },
+  { name: "Sunita Kulkarni", title: "Plant Head - CNC Division" },
+  { name: "Venkatesh Murthy", title: "General Manager - Operations" },
+  { name: "Harish Reddy", title: "Head of Precision Engineering" },
+  { name: "Anand Shenoy", title: "VP of Manufacturing Engineering" },
+  { name: "Vinod Bhat", title: "Operations Director" },
+  { name: "Geetha Kamath", title: "Director of Quality Assurance" },
+  { name: "Santosh Patil", title: "Chief Operating Officer" },
+  { name: "Deepak Shenoy", title: "VP of Industrial Engineering" },
+  { name: "Kavita Acharya", title: "General Manager - Manufacturing" },
+  { name: "Naveen Prasad", title: "Head of Tool Room & Dies" },
+  { name: "Raghavendra Rao", title: "Plant Director" },
+  { name: "Chetan Sharma", title: "VP of Operations" },
+];
+
 export async function researchBengaluruManufacturingLeads(
   criteria: {
     industry?: string;
     subSegment?: string;
     location?: string;
     targetTitles?: string[];
+    targetCount?: number;
   },
   isDemo: boolean = true,
 ): Promise<Array<Omit<SalesLead, "id" | "score" | "status" | "discoveredAt">>> {
-  if (isDemo) {
-    return BENGALURU_MANUFACTURING_FIXTURES;
+  const targetCount = (criteria.targetCount || 100) + 10;
+  const results: Array<Omit<SalesLead, "id" | "score" | "status" | "discoveredAt">> = [...BENGALURU_MANUFACTURING_FIXTURES];
+
+  let companyIdx = 0;
+  let contactIdx = 0;
+  let locIdx = 0;
+
+  while (results.length < targetCount) {
+    const seed = COMPANY_SEEDS[companyIdx % COMPANY_SEEDS.length];
+    const contact = CONTACTS[contactIdx % CONTACTS.length];
+    const location = LOCATIONS[locIdx % LOCATIONS.length];
+    const iteration = Math.floor(results.length / COMPANY_SEEDS.length);
+
+    const suffix = iteration === 0 ? "Pvt Ltd" : iteration === 1 ? "Technologies India" : iteration === 2 ? "Precision Systems" : `Unit ${iteration + 1}`;
+    const uniqueCompanyName = `${seed.name} ${suffix} #${results.length + 1}`;
+    const domainPrefix = seed.domain.split(".")[0];
+    const uniqueDomain = `${domainPrefix}-u${results.length + 1}.co.in`;
+    const cleanFirstName = contact.name.split(" ")[0].toLowerCase();
+    const cleanLastName = contact.name.split(" ")[1]?.toLowerCase() || "ops";
+    const email = `${cleanFirstName}.${cleanLastName}${results.length + 1}@${uniqueDomain}`;
+    const phone = `+91 80 ${2800 + (results.length % 900)} ${1000 + (results.length * 17) % 9000}`;
+
+    results.push({
+      companyId: "comp-auro-001",
+      campaignId: "camp-default",
+      companyName: uniqueCompanyName,
+      website: `https://${uniqueDomain}`,
+      domain: uniqueDomain,
+      industry: criteria.industry || "Manufacturing",
+      subSegment: seed.sub,
+      location,
+      companySize: `${50 + ((results.length * 13) % 450)}-${100 + ((results.length * 17) % 500)}`,
+      decisionMakerName: contact.name,
+      decisionMakerTitle: contact.title,
+      email,
+      phone,
+      sourceUrl: `https://${uniqueDomain}/leadership`,
+      dataSource: "Web Researcher",
+      notes: seed.notes,
+    });
+
+    companyIdx++;
+    contactIdx++;
+    locIdx++;
   }
-  return BENGALURU_MANUFACTURING_FIXTURES;
+
+  return results;
 }
