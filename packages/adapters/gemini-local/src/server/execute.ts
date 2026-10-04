@@ -595,7 +595,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     };
   };
 
-  const buildArgs = (resumeSessionId: string | null, prompt: string) => {
+  const buildArgs = (resumeSessionId: string | null) => {
     const args = ["--skip-trust", "--output-format", "stream-json"];
     if (resumeSessionId) args.push("--resume", resumeSessionId);
     if (model && model !== DEFAULT_GEMINI_LOCAL_MODEL) args.push("--model", model);
@@ -604,7 +604,6 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       args.push("--sandbox");
     }
     if (extraArgs.length > 0) args.push(...extraArgs);
-    args.push("--prompt", prompt);
     return args;
   };
 
@@ -614,7 +613,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       selectInitialCommunicationGuidance(context, { resumedSession: Boolean(resumeSessionId) }),
       basePrompt,
     ]);
-    const args = buildArgs(resumeSessionId, prompt);
+    const args = buildArgs(resumeSessionId);
     const invocationEnv = buildGeminiHeadlessEnv(env);
     const invocationRuntimeEnv = buildGeminiRuntimeEnv(env);
     const loggedEnv = buildInvocationEnvForLogs(invocationEnv, {
@@ -628,9 +627,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         command: resolvedCommand,
         cwd: effectiveExecutionCwd,
         commandNotes,
-        commandArgs: args.map((value, index) => (
-          index === args.length - 1 ? `<prompt ${prompt.length} chars>` : value
-        )),
+        commandArgs: args,
         env: loggedEnv,
         prompt,
         promptMetrics: { ...promptMetrics, promptChars: prompt.length },
@@ -639,6 +636,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     }
 
     const proc = await runAdapterExecutionTargetProcess(runId, runtimeExecutionTarget, command, args, {
+      stdin: `${prompt}\n`,
       onProcessStopped: providerStop.beginInvocation(),
       cwd,
       env: invocationEnv,
