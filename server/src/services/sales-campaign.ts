@@ -62,6 +62,7 @@ export interface CampaignRecord {
   companyId: string;
   name: string;
   status: 'draft' | 'running' | 'paused' | 'completed' | 'failed';
+  pauseReason?: string;
   brief: CampaignBrief;
   stats: {
     totalLeadsFound: number;
@@ -472,6 +473,79 @@ export class SalesCampaignService {
       deletedLeadId: leadId,
       scrubbedFields: ["email", "phone", "decisionMakerName", "notes", "rawExtractedData", "activityHistory"],
     };
+  }
+
+  /**
+   * Pause campaign with reason (e.g. rate limit / quota exhaustion)
+   */
+  async pauseCampaign(companyId: string, campaignId: string, reason: string): Promise<CampaignRecord> {
+    const campaign = await this.getCampaign(companyId, campaignId);
+    if (!campaign) {
+      throw new Error(`Campaign ${campaignId} not found`);
+    }
+    campaign.status = 'paused';
+    campaign.pauseReason = reason;
+    campaign.updatedAt = new Date().toISOString();
+    return campaign;
+  }
+
+  /**
+   * Resume paused campaign
+   */
+  async resumeCampaign(companyId: string, campaignId: string): Promise<CampaignRecord> {
+    const campaign = await this.getCampaign(companyId, campaignId);
+    if (!campaign) {
+      throw new Error(`Campaign ${campaignId} not found`);
+    }
+    campaign.status = 'running';
+    delete campaign.pauseReason;
+    campaign.updatedAt = new Date().toISOString();
+    return campaign;
+  }
+
+  /**
+   * Dispatch emails for approved leads in a batch with state tracking and idempotency
+   */
+  async dispatchApprovedBatchEmails(
+    companyId: string,
+    campaignId: string,
+    batchId: string,
+    senderIdentity: { senderName: string; senderEmail: string; legalBusinessName: string; physicalAddress: string },
+    dryRun: boolean = true
+  ): Promise<{ dispatchedCount: number; alreadyDispatchedCount: number; batchId: string }> {
+    const campaign = await this.getCampaign(companyId, campaignId);
+    if (!campaign) {
+      throw new Error(`Campaign ${campaignId} not found`);
+    }
+    if (campaign.status === 'paused') {
+      throw new Error(`Campaign ${campaignId} is currently paused: ${campaign.pauseReason || 'Quota reached'}`);
+    }
+
+    const batches = this.approvalBatches.get(campaignId) || [];
+    const batch = batches.find((b) => b.id === batchId);
+    if (!batch || batch.companyId !== companyId) {
+      throw new Error('Approval batch not found');
+    }
+
+    let dispatchedCount = 0;
+    let alreadyDispatchedCount = 0;
+
+    for (const lead of batch.leads) {
+      if (lead.status === 'dispatched' || lead.status === 'sent') {
+        alreadyDispatchedCount++;
+        continue;
+      }
+
+      if (lead.status === 'approved') {
+        // Mark as dispatched
+        lead.status = 'dispatched';
+        dispatchedCount++;
+        campaign.stats.emailsSent++;
+      }
+    }
+
+    campaign.updatedAt = new Date().toISOString();
+    return { dispatchedCount, alreadyDispatchedCount, batchId };
   }
 
   /**
