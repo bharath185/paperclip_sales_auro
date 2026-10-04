@@ -129,24 +129,28 @@ export function SalesInbox() {
   const totalPendingLeads = pendingBatches.reduce((acc, b) => acc + (Array.isArray(b.leads) ? b.leads.length : 0), 0);
 
   return (
-    <div className="max-w-5xl space-y-6">
+    <div className="w-full max-w-7xl mx-auto space-y-6 pb-12">
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border pb-4">
         <div>
-          <div className="flex items-center gap-2">
-            <Inbox className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-bold tracking-tight text-foreground">Sales Approvals &amp; Outreach Inbox</h1>
+          <div className="flex items-center gap-2.5">
+            <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+              <Inbox className="h-5 w-5" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-foreground">Sales Approvals &amp; Outreach Inbox</h1>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Human-in-the-loop review for prospect batches, verified corporate profiles, and hot reply triage.
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Human-in-the-loop review for prospect batches, email sequence verification, and hot reply triage.
-          </p>
         </div>
 
         {campaigns.length > 1 && (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Campaign:</span>
+          <div className="flex items-center gap-2 bg-card border border-border px-3 py-1.5 rounded-lg">
+            <span className="text-xs font-medium text-muted-foreground">Campaign:</span>
             <select
-              className="rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground outline-none"
+              className="rounded bg-background px-2.5 py-1 text-xs text-foreground font-medium outline-none border border-input cursor-pointer"
               value={selectedCampaignId}
               onChange={(e) => setSelectedCampaignId(e.target.value)}
             >
@@ -161,66 +165,68 @@ export function SalesInbox() {
       </div>
 
       {/* Tabs */}
-      <div className="flex flex-wrap gap-1.5 border-b border-border pb-2">
+      <div className="flex flex-wrap gap-2 border-b border-border pb-3">
         <Button
-          variant={activeTab === "pending" ? "secondary" : "ghost"}
+          variant={activeTab === "pending" ? "default" : "outline"}
           size="sm"
-          className="text-xs h-8"
+          className="text-xs font-medium h-9"
           onClick={() => setActiveTab("pending")}
         >
-          <CheckSquare className="mr-1.5 h-3.5 w-3.5 text-primary" />
+          <CheckSquare className="mr-1.5 h-4 w-4" />
           Pending Approvals ({totalPendingLeads})
         </Button>
 
         <Button
-          variant={activeTab === "sequences" ? "secondary" : "ghost"}
+          variant={activeTab === "sequences" ? "default" : "outline"}
           size="sm"
-          className="text-xs h-8"
+          className="text-xs font-medium h-9"
           onClick={() => setActiveTab("sequences")}
         >
-          <Mail className="mr-1.5 h-3.5 w-3.5" />
-          Draft Email Sequences
+          <Mail className="mr-1.5 h-4 w-4" />
+          Email Sequence Templates
         </Button>
 
         <Button
-          variant={activeTab === "hot_leads" ? "secondary" : "ghost"}
+          variant={activeTab === "hot_leads" ? "default" : "outline"}
           size="sm"
-          className="text-xs h-8"
+          className="text-xs font-medium h-9"
           onClick={() => setActiveTab("hot_leads")}
         >
-          <Flame className="mr-1.5 h-3.5 w-3.5 text-primary" />
+          <Flame className="mr-1.5 h-4 w-4 text-amber-500" />
           Hot Inbound Replies ({hotLeads.length})
         </Button>
 
         <Button
-          variant={activeTab === "history" ? "secondary" : "ghost"}
+          variant={activeTab === "history" ? "default" : "outline"}
           size="sm"
-          className="text-xs h-8"
+          className="text-xs font-medium h-9"
           onClick={() => setActiveTab("history")}
         >
-          <UserCheck className="mr-1.5 h-3.5 w-3.5" />
+          <UserCheck className="mr-1.5 h-4 w-4" />
           Approval History ({approvedBatches.length})
         </Button>
       </div>
 
       {/* 1. Pending Approvals Tab */}
       {activeTab === "pending" && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {loading ? (
-            <Card className="border-border bg-card p-8 text-center text-xs text-muted-foreground">
+            <Card className="border-border bg-card p-12 text-center text-sm text-muted-foreground">
               Loading pending prospect review batches...
             </Card>
           ) : pendingBatches.length === 0 ? (
-            <Card className="border-border bg-card p-8 text-center space-y-3">
-              <CheckSquare className="h-10 w-10 text-primary mx-auto opacity-60" />
+            <Card className="border-border bg-card p-12 text-center space-y-4">
+              <div className="h-12 w-12 rounded-full bg-primary/10 text-primary mx-auto flex items-center justify-center">
+                <CheckSquare className="h-6 w-6" />
+              </div>
               <div className="space-y-1">
-                <p className="text-base font-semibold text-foreground">Inbox is Zero — All Leads Approved</p>
+                <p className="text-base font-semibold text-foreground">Inbox is Clear — All Leads Approved</p>
                 <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                  No lead batches are currently awaiting board review. As Researcher agents discover new decision makers, they will populate here for one-click approval.
+                  No lead batches are currently awaiting review. New verified enterprise accounts discovered by your AI Researchers will populate here.
                 </p>
               </div>
               <Button size="sm" variant="outline" onClick={loadData} className="text-xs">
-                <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Check for New Leads
+                <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Refresh Inbox
               </Button>
             </Card>
           ) : (
@@ -231,96 +237,138 @@ export function SalesInbox() {
               const isAllSelected = selected.size === allLeadIds.length && allLeadIds.length > 0;
 
               return (
-                <Card key={batch.id} className="border-border bg-card">
-                  <CardHeader className="pb-3 border-b border-border flex flex-row items-center justify-between">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <CardTitle className="text-sm font-semibold">
-                          Outbound Prospect Batch ({safeLeads.length} Decision Makers)
+                <Card key={batch.id} className="border-border bg-card shadow-sm overflow-hidden">
+                  <CardHeader className="p-4 bg-muted/30 border-b border-border flex flex-row items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2.5">
+                        <CardTitle className="text-base font-bold text-foreground">
+                          Outbound Prospect Review Batch
                         </CardTitle>
-                        <Badge variant="secondary" className="bg-amber-500/15 text-amber-500 text-xs">
-                          Pending Human Gate
+                        <Badge variant="secondary" className="bg-amber-500/15 text-amber-500 text-xs font-semibold px-2 py-0.5">
+                          {safeLeads.length} Accounts Awaiting Review
                         </Badge>
                       </div>
-                      <CardDescription className="text-xs text-muted-foreground">
-                        Discovered by Autonomous Researcher Agents • Verified against CAN-SPAM and suppression list
+                      <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                        Verified manufacturing entities • Internal database storage mode • Outbound dispatch guarded
                       </CardDescription>
                     </div>
 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs h-7"
-                      onClick={() => toggleSelectAll(batch.id, allLeadIds)}
-                    >
-                      {isAllSelected ? "Deselect All" : "Select All"}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs font-medium"
+                        onClick={() => toggleSelectAll(batch.id, allLeadIds)}
+                      >
+                        {isAllSelected ? "Deselect All" : "Select All"}
+                      </Button>
+                    </div>
                   </CardHeader>
 
-                  <CardContent className="p-0">
-                    <div className="divide-y divide-border">
+                  <CardContent className="p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {safeLeads.map((lead) => {
                         const isChecked = selected.has(lead.id);
 
                         return (
                           <div
                             key={lead.id}
-                            className={`p-3 flex items-start gap-3 hover:bg-muted/20 transition-colors cursor-pointer ${
-                              isChecked ? "bg-primary/5" : "opacity-60"
+                            className={`p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between gap-3 ${
+                              isChecked
+                                ? "bg-card border-primary shadow-xs ring-1 ring-primary/20"
+                                : "bg-muted/10 border-border opacity-60 hover:opacity-100"
                             }`}
                             onClick={() => toggleLeadSelection(batch.id, lead.id)}
                           >
-                            <button
-                              type="button"
-                              className={`mt-0.5 h-4 w-4 rounded border flex items-center justify-center transition-colors ${
-                                isChecked
-                                  ? "bg-primary border-primary text-primary-foreground"
-                                  : "border-muted-foreground/40 bg-background"
-                              }`}
-                              aria-label={isChecked ? "Deselect lead" : "Select lead"}
-                            >
-                              {isChecked && <Check className="h-3 w-3" />}
-                            </button>
-
-                            <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                              <div>
-                                <div className="font-semibold text-foreground flex items-center gap-1.5">
-                                  {lead.companyName}
-                                  <Badge variant="outline" className="text-(length:--text-nano) px-1 py-0 font-normal">
-                                    {lead.subSegment || lead.industry}
-                                  </Badge>
+                            <div className="space-y-2">
+                              {/* Top Bar: Company Name & Selection Checkbox */}
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="space-y-0.5 flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <h3 className="font-bold text-sm text-foreground truncate">{lead.companyName}</h3>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <span className="truncate">{lead.companyDomain || (lead as any).domain || "domain.com"}</span>
+                                    {((lead as any).website || lead.companyDomain) && (
+                                      <a
+                                        href={(lead as any).website || `https://${lead.companyDomain}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-primary hover:underline inline-flex items-center gap-0.5"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        Visit <ExternalLink className="h-3 w-3" />
+                                      </a>
+                                    )}
+                                  </div>
                                 </div>
-                                <div className="text-muted-foreground text-xs">{lead.companyDomain}</div>
+
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <Badge
+                                    variant="secondary"
+                                    className={
+                                      (lead.leadScore ?? (lead as any).score ?? 0) >= 80
+                                        ? "bg-primary/20 text-primary border-primary/30 text-xs font-bold"
+                                        : "bg-muted text-muted-foreground text-xs"
+                                    }
+                                  >
+                                    Score: {lead.leadScore ?? (lead as any).score ?? 0}/100
+                                  </Badge>
+
+                                  <button
+                                    type="button"
+                                    className={`h-5 w-5 rounded border flex items-center justify-center transition-colors ${
+                                      isChecked
+                                        ? "bg-primary border-primary text-primary-foreground"
+                                        : "border-muted-foreground/40 bg-background"
+                                    }`}
+                                    aria-label={isChecked ? "Deselect lead" : "Select lead"}
+                                  >
+                                    {isChecked && <Check className="h-3.5 w-3.5 " />}
+                                  </button>
+                                </div>
                               </div>
 
-                              <div>
-                                <div className="font-medium text-foreground">{lead.contactName || "Decision Maker"}</div>
-                                <div className="text-muted-foreground text-xs">{lead.contactTitle || "Director / VP"}</div>
-                                <div className="text-primary truncate">{lead.contactEmail}</div>
-                              </div>
-
-                              <div className="sm:text-right flex sm:flex-col justify-between sm:items-end items-center">
-                                <Badge
-                                  variant="secondary"
-                                  className={
-                                    (lead.leadScore ?? 0) >= 80
-                                      ? "bg-primary/20 text-primary border-primary/30"
-                                      : "bg-muted text-muted-foreground"
-                                  }
-                                >
-                                  Score: {lead.leadScore ?? 0}/100
+                              {/* Badges: Sub-segment & Location */}
+                              <div className="flex flex-wrap gap-1.5 pt-1">
+                                <Badge variant="outline" className="text-xs bg-muted/30 font-normal">
+                                  {lead.subSegment || lead.industry}
                                 </Badge>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setPreviewLead(lead);
-                                  }}
-                                  className="text-xs text-primary hover:underline inline-flex items-center gap-1 mt-1"
-                                >
-                                  <Eye className="h-3 w-3" /> Preview Draft
-                                </button>
+                                <Badge variant="outline" className="text-xs bg-muted/30 font-normal text-muted-foreground">
+                                  📍 {lead.locationCity || (lead as any).location || "Bengaluru Industrial Corridor"}
+                                </Badge>
                               </div>
+
+                              {/* Decision Maker Details */}
+                              <div className="p-2.5 rounded-lg bg-muted/40 border border-border/50 text-xs space-y-1">
+                                <div className="font-semibold text-foreground flex items-center justify-between">
+                                  <span>👤 {lead.contactName || (lead as any).decisionMakerName || "Executive Decision Maker"}</span>
+                                  <span className="text-xs text-muted-foreground font-normal">{lead.contactTitle || (lead as any).decisionMakerTitle || "Leadership"}</span>
+                                </div>
+                                <div className="text-primary truncate font-mono text-xs">{lead.contactEmail || (lead as any).email || "contact@domain.com"}</div>
+                                {(lead as any).phone && (
+                                  <div className="text-muted-foreground text-xs">📞 {(lead as any).phone}</div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="pt-2 border-t border-border/40 flex items-center justify-between">
+                              <span className="text-xs text-muted-foreground">
+                                {isChecked ? "✓ Selected for database" : "Click to select"}
+                              </span>
+
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPreviewLead(lead);
+                                }}
+                              >
+                                <Eye className="mr-1 h-3 w-3" /> Preview Outreach Draft
+                              </Button>
                             </div>
                           </div>
                         );
@@ -328,19 +376,19 @@ export function SalesInbox() {
                     </div>
                   </CardContent>
 
-                  <CardFooter className="p-3 bg-muted/20 border-t border-border flex justify-between items-center">
+                  <CardFooter className="p-4 bg-muted/30 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-3">
                     <div className="text-xs text-muted-foreground">
-                      <span className="font-medium text-foreground">{selected.size}</span> of {safeLeads.length} leads approved for sequence dispatch
+                      Selected <span className="font-bold text-foreground text-sm">{selected.size}</span> of {safeLeads.length} verified accounts to save &amp; approve
                     </div>
 
                     <Button
                       size="sm"
-                      className="text-xs"
+                      className="text-xs font-bold px-5 h-9"
                       onClick={() => handleApproveBatch(batch.id)}
                       disabled={processingBatchId === batch.id || selected.size === 0}
                     >
-                      <Send className="mr-1.5 h-3.5 w-3.5" />
-                      {processingBatchId === batch.id ? "Enqueuing..." : `Approve & Dispatch (${selected.size})`}
+                      <Check className="mr-1.5 h-4 w-4 " />
+                      {processingBatchId === batch.id ? "Saving to Database..." : `Approve & Save to Database (${selected.size})`}
                     </Button>
                   </CardFooter>
                 </Card>
@@ -360,54 +408,51 @@ export function SalesInbox() {
 
       {/* 3. Hot Leads Tab */}
       {activeTab === "hot_leads" && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {hotLeads.length === 0 ? (
-            <Card className="border-border bg-card p-8 text-center space-y-2">
-              <Flame className="h-8 w-8 text-primary mx-auto opacity-50" />
-              <p className="text-sm font-semibold text-foreground">No Hot Inbound Replies Yet</p>
-              <p className="text-xs text-muted-foreground">
-                When prospects respond with meeting availability or high interest, they appear here instantly.
+            <Card className="border-border bg-card p-12 text-center space-y-3">
+              <Flame className="h-10 w-10 text-primary mx-auto opacity-50" />
+              <p className="text-base font-semibold text-foreground">No Hot Inbound Replies Yet</p>
+              <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                When prospects respond with meeting requests or technical inquiries, they will appear here instantly.
               </p>
             </Card>
           ) : (
-            hotLeads.map((hl) => (
-              <Card key={hl.id} className="border-border bg-card">
-                <CardHeader className="pb-2 flex flex-row items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-sm font-bold text-foreground">{hl.companyName}</CardTitle>
-                      <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30 text-xs">
-                        {hl.sentiment === "meeting_requested" ? "📅 Meeting Requested" : "🔥 High Interest"}
-                      </Badge>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {hotLeads.map((hl) => (
+                <Card key={hl.id} className="border-border bg-card p-5 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-sm text-foreground">{hl.companyName}</h3>
+                        <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30 text-xs font-bold">
+                          {hl.sentiment === "meeting_requested" ? "📅 Meeting Requested" : "🔥 High Interest"}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Contact: <span className="font-medium text-foreground">{hl.contactName}</span> ({hl.contactEmail})
+                      </p>
                     </div>
-                    <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                      Contact: <span className="text-foreground font-medium">{hl.contactName}</span> ({hl.contactEmail})
-                    </CardDescription>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(hl.detectedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
                   </div>
-                  <div className="text-right text-xs text-muted-foreground">
-                    {new Date(hl.detectedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                </CardHeader>
 
-                <CardContent className="space-y-3">
-                  <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-xs italic text-foreground/90">
+                  <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs italic text-foreground leading-relaxed">
                     "{hl.replySnippet}"
                   </div>
 
-                  <div className="flex justify-between items-center pt-1 text-xs">
-                    <span className="text-muted-foreground">Follow-up agent auto-notified human sales rep</span>
-                    <a
-                      href={`mailto:${hl.contactEmail}?subject=Re:%20Introductory%20Discussion`}
-                      className="inline-flex"
-                    >
+                  <div className="pt-2 border-t border-border flex justify-between items-center text-xs">
+                    <span className="text-muted-foreground">Autonomous follow-up notification captured</span>
+                    <a href={`mailto:${hl.contactEmail}?subject=Re:%20Introductory%20Discussion`} className="inline-flex">
                       <Button size="sm" className="h-7 text-xs">
                         <Mail className="mr-1.5 h-3.5 w-3.5" /> Reply to Prospect
                       </Button>
                     </a>
                   </div>
-                </CardContent>
-              </Card>
-            ))
+                </Card>
+              ))}
+            </div>
           )}
         </div>
       )}
@@ -424,11 +469,11 @@ export function SalesInbox() {
               <Card key={b.id} className="border-border bg-card p-4">
                 <div className="flex justify-between items-center text-xs">
                   <div>
-                    <div className="font-semibold text-foreground">Batch #{b.batchNumber} — {b.leads?.length ?? 0} Prospects</div>
-                    <div className="text-muted-foreground">Approved {b.approvedAt ? new Date(b.approvedAt).toLocaleString() : "Recently"}</div>
+                    <div className="font-semibold text-foreground">Batch #{b.batchNumber || b.id.slice(0, 8)} — {b.leads?.length ?? 0} Accounts</div>
+                    <div className="text-muted-foreground">Approved &amp; saved into internal database</div>
                   </div>
-                  <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30 text-xs">
-                    Approved &amp; Enqueued ({b.approvedCount ?? b.leads?.length ?? 0})
+                  <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30 text-xs font-semibold">
+                    ✓ Approved ({b.approvedCount ?? b.leads?.length ?? 0})
                   </Badge>
                 </div>
               </Card>
@@ -439,38 +484,54 @@ export function SalesInbox() {
 
       {/* Modal Draft Email Preview */}
       {previewLead && (
-        <Card className="border-primary/40 bg-card p-4 space-y-3">
-          <div className="flex justify-between items-start border-b border-border pb-2">
-            <div>
-              <div className="text-xs font-semibold text-primary">Outbound Cold Email Preview (Touch 1)</div>
-              <div className="text-sm font-bold text-foreground">To: {previewLead.contactName || "Decision Maker"} ({previewLead.contactEmail})</div>
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <Card className="w-full max-w-2xl border-primary/40 bg-card shadow-2xl p-6 space-y-4">
+            <div className="flex justify-between items-start border-b border-border pb-3">
+              <div>
+                <Badge variant="secondary" className="bg-primary/20 text-primary text-xs font-bold mb-1">
+                  Outbound Cold Email Preview (Touch 1)
+                </Badge>
+                <h3 className="text-base font-bold text-foreground">
+                  To: {previewLead.contactName || (previewLead as any).decisionMakerName || "Executive"} ({previewLead.contactEmail || (previewLead as any).email})
+                </h3>
+              </div>
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => setPreviewLead(null)}>
+                ✕
+              </Button>
             </div>
-            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setPreviewLead(null)}>
-              Close
-            </Button>
-          </div>
 
-          <div className="space-y-2 text-xs">
-            <div className="rounded border border-border bg-muted/20 p-2.5 space-y-1.5">
-              <div className="font-semibold text-foreground">
-                Subject: Question regarding {previewLead.companyName}'s {previewLead.subSegment || previewLead.industry} operations
-              </div>
-              <div className="text-muted-foreground whitespace-pre-line leading-relaxed">
-                {`Hi ${previewLead.contactName || "there"},
+            <div className="space-y-3 text-xs">
+              <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-2">
+                <div className="font-bold text-foreground text-sm">
+                  Subject: Question regarding {previewLead.companyName}'s {previewLead.subSegment || previewLead.industry} operations
+                </div>
+                <div className="text-muted-foreground whitespace-pre-line leading-relaxed text-xs">
+                  {`Hi ${previewLead.contactName || (previewLead as any).decisionMakerName || "there"},
 
-I noticed ${previewLead.companyName}'s recent work in ${previewLead.subSegment || previewLead.industry} across the ${previewLead.locationCity || "Bengaluru"} corridor.
+I noticed ${previewLead.companyName}'s recent manufacturing work in ${previewLead.subSegment || previewLead.industry} across the ${previewLead.locationCity || (previewLead as any).location || "Bengaluru"} corridor.
 
-We help precision engineering and manufacturing leaders accelerate component turnaround times by 40% while maintaining strict compliance.
+We help precision engineering and plant leaders accelerate project turnaround times by 40% while maintaining 100% component traceability and quality governance.
 
-Would you be open to a brief 10-minute introductory conversation next Tuesday or Thursday?`}
-              </div>
-              <div className="pt-2 border-t border-border/60 text-(length:--text-micro) text-muted-foreground space-y-0.5">
-                <div>Sender: Sales Lead • Project Auro Inc. • 100 Innovation Blvd, Tech Park</div>
-                <div className="text-primary/80">List-Unsubscribe: &lt;https://api.auro.ai/opt-out&gt; (One-Click RFC 8058)</div>
+Would you be open to a brief 10-minute introductory conversation next Tuesday or Thursday?
+
+Best regards,
+Auro Sales Lead
+Project Auro Inc.`}
+                </div>
+                <div className="pt-3 border-t border-border/60 text-(length:--text-nano) text-muted-foreground space-y-0.5">
+                  <div>Internal Storage: Saved in Database • Physical Address: Industrial Corridor, Bengaluru</div>
+                  <div className="text-primary/80">List-Unsubscribe: &lt;https://api.auro.ai/opt-out&gt; (One-Click RFC 8058)</div>
+                </div>
               </div>
             </div>
-          </div>
-        </Card>
+
+            <div className="flex justify-end">
+              <Button size="sm" onClick={() => setPreviewLead(null)} className="text-xs">
+                Close Preview
+              </Button>
+            </div>
+          </Card>
+        </div>
       )}
     </div>
   );
