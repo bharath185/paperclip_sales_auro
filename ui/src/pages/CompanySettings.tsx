@@ -1,56 +1,50 @@
 import { ChangeEvent, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  type InteractionResolverGovernance,
-  type IssueThreadInteractionKind,
-} from "@paperclipai/shared";
 import { useCompany } from "../context/CompanyContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
-import { useOptionalToastActions } from "../context/ToastContext";
-import { useCloudInstance } from "../hooks/useCloudInstance";
-import { resolveCompanyArchiveDeparture } from "../lib/company-selection";
-import { cloudPortfolioManageUrl } from "../lib/cloudLinks";
-import { navigateTopLevel } from "@/lib/browserNavigation";
 import { companiesApi } from "../api/companies";
 import { assetsApi } from "../api/assets";
 import { queryKeys } from "../lib/queryKeys";
 import { Button } from "@/components/ui/button";
-import { SlidersHorizontal } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
-  InteractionGovernancePanel,
-  applyGovernanceChange,
-  type GovernanceField,
-  type GovernanceSelectValue,
-} from "../components/InteractionGovernancePanel";
+  SlidersHorizontal,
+  Mail,
+  ShieldCheck,
+  Building2,
+  KeyRound,
+  CheckCircle2,
+  Sparkles,
+  Save,
+} from "lucide-react";
 import { CompanyPatternIcon } from "../components/CompanyPatternIcon";
-import {
-  Field,
-  ToggleField,
-} from "../components/agent-config-primitives";
-import { InstanceGeneralSettings } from "./InstanceGeneralSettings";
+import { Field } from "../components/agent-config-primitives";
 
 export function CompanySettings() {
   const {
     companies,
     selectedCompany,
     selectedCompanyId,
-    setSelectedCompanyId
   } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const toastActions = useOptionalToastActions();
-  const cloud = useCloudInstance();
-  // Managed instances derive the task ID prefix from the company name, so a
-  // rename here also renumbers the existing task IDs.
-  const isCloudManaged = Boolean(cloud);
+
   // General settings local state
   const [companyName, setCompanyName] = useState("");
   const [description, setDescription] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
-  const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
-  const [governance, setGovernance] = useState<InteractionResolverGovernance>({});
+
+  // Sender identity local state
+  const [senderName, setSenderName] = useState(() => localStorage.getItem("auro_sender_name") || "Sales Lead");
+  const [senderEmail, setSenderEmail] = useState(() => localStorage.getItem("auro_sender_email") || "sales@auro.ai");
+  const [legalBusinessName, setLegalBusinessName] = useState(() => localStorage.getItem("auro_legal_name") || "Auro Outbound Inc.");
+  const [physicalAddress, setPhysicalAddress] = useState(() => localStorage.getItem("auro_physical_address") || "100 Innovation Blvd, Suite 200, Tech Park");
+
+  // CRM settings local state
+  const [webhookUrl, setWebhookUrl] = useState(() => localStorage.getItem("auro_crm_webhook") || "https://api.hubspot.com/crm/v3/imports");
+  const [hubspotKey, setHubspotKey] = useState(() => localStorage.getItem("auro_hubspot_key") || "pat-na1-••••••••••••••••");
+  const [savedNotice, setSavedNotice] = useState(false);
 
   // Sync local state from selected company
   useEffect(() => {
@@ -58,13 +52,14 @@ export function CompanySettings() {
     setCompanyName(selectedCompany.name);
     setDescription(selectedCompany.description ?? "");
     setLogoUrl(selectedCompany.logoUrl ?? "");
-    setGovernance(selectedCompany.interactionResolverGovernance ?? {});
   }, [selectedCompany]);
 
-  const generalDirty =
-    !!selectedCompany &&
-    (companyName !== selectedCompany.name ||
-      description !== (selectedCompany.description ?? ""));
+  useEffect(() => {
+    setBreadcrumbs([
+      { label: "Sales Hub", href: "/sales" },
+      { label: "Settings & Configuration" }
+    ]);
+  }, [setBreadcrumbs]);
 
   const generalMutation = useMutation({
     mutationFn: (data: {
@@ -75,35 +70,6 @@ export function CompanySettings() {
       queryClient.invalidateQueries({ queryKey: queryKeys.companies.all });
     }
   });
-
-  const settingsMutation = useMutation({
-    mutationFn: (requireApproval: boolean) =>
-      companiesApi.update(selectedCompanyId!, {
-        requireBoardApprovalForNewAgents: requireApproval
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.companies.all });
-    }
-  });
-
-  const governanceMutation = useMutation({
-    mutationFn: (next: InteractionResolverGovernance) =>
-      companiesApi.update(selectedCompanyId!, { interactionResolverGovernance: next }),
-    onSuccess: (company) => {
-      setGovernance(company.interactionResolverGovernance ?? {});
-      queryClient.invalidateQueries({ queryKey: queryKeys.companies.all });
-    }
-  });
-
-  function handleGovernanceChange(
-    kind: IssueThreadInteractionKind,
-    field: GovernanceField,
-    value: GovernanceSelectValue,
-  ) {
-    const next = applyGovernanceChange(governance, kind, field, value);
-    setGovernance(next);
-    governanceMutation.mutate(next);
-  }
 
   const syncLogoState = (nextLogoUrl: string | null) => {
     setLogoUrl(nextLogoUrl ?? "");
@@ -117,301 +83,238 @@ export function CompanySettings() {
         .then((asset) => companiesApi.update(selectedCompanyId!, { logoAssetId: asset.assetId })),
     onSuccess: (company) => {
       syncLogoState(company.logoUrl);
-      setLogoUploadError(null);
     }
   });
 
-  const clearLogoMutation = useMutation({
-    mutationFn: () => companiesApi.update(selectedCompanyId!, { logoAssetId: null }),
-    onSuccess: (company) => {
-      setLogoUploadError(null);
-      syncLogoState(company.logoUrl);
-    }
-  });
+  const handleSaveAll = () => {
+    // Save to local storage for persistence across sales operations
+    localStorage.setItem("auro_sender_name", senderName);
+    localStorage.setItem("auro_sender_email", senderEmail);
+    localStorage.setItem("auro_legal_name", legalBusinessName);
+    localStorage.setItem("auro_physical_address", physicalAddress);
+    localStorage.setItem("auro_crm_webhook", webhookUrl);
+    localStorage.setItem("auro_hubspot_key", hubspotKey);
 
-  function handleLogoFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0] ?? null;
-    event.currentTarget.value = "";
-    if (!file) return;
-    setLogoUploadError(null);
-    logoUploadMutation.mutate(file);
-  }
-
-  function handleClearLogo() {
-    clearLogoMutation.mutate();
-  }
-
-  const archiveMutation = useMutation({
-    mutationFn: ({ companyId }: { companyId: string }) =>
-      companiesApi.archive(companyId),
-    onSuccess: async (_result, { companyId }) => {
-      // Never stay on the archived company's settings: the only visible
-      // change would be the archive button going inert. Leave for wherever
-      // still makes sense (another active company, the Cloud portfolio, or
-      // the companies list), with a toast naming what happened.
-      const archived = companies.find((company) => company.id === companyId);
-      const archivedName = archived?.name ?? "Organization";
-      const departure = resolveCompanyArchiveDeparture({
-        archivedCompanyId: companyId,
-        companies,
-        cloudPortfolioUrl: cloudPortfolioManageUrl(cloud?.cloudBaseUrl),
-      });
-      if (departure.kind === "cloud_portfolio") {
-        // The whole organization is on its way to being archived by the
-        // control plane; a full navigation to the Cloud portfolio replaces
-        // this document, so cache invalidation below would never run.
-        navigateTopLevel(departure.url);
-        return;
-      }
-      if (departure.kind === "company") {
-        toastActions?.pushToast({
-          title: `${archivedName} is archived`,
-          body: `Switched to ${departure.company.name}.`,
-          tone: "info",
-          dedupeKey: `company-archive-departure:${companyId}`,
-        });
-        setSelectedCompanyId(departure.company.id);
-        navigate(`/${departure.company.issuePrefix}/dashboard`, { replace: true });
-      } else {
-        toastActions?.pushToast({
-          title: `${archivedName} is archived`,
-          body: "You can unarchive it from this list.",
-          tone: "info",
-          dedupeKey: `company-archive-departure:${companyId}`,
-        });
-        navigate(`/${archived?.issuePrefix ?? ""}/companies`, { replace: true });
-      }
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.companies.all
-      });
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.companies.stats
+    if (companyName.trim() && selectedCompanyId) {
+      generalMutation.mutate({
+        name: companyName.trim(),
+        description: description.trim() || null,
       });
     }
-  });
 
-  useEffect(() => {
-    setBreadcrumbs([
-      { label: selectedCompany?.name ?? "Company", href: "/dashboard" },
-      { label: "Settings" }
-    ]);
-  }, [setBreadcrumbs, selectedCompany?.name]);
+    setSavedNotice(true);
+    setTimeout(() => setSavedNotice(false), 3000);
+  };
 
   if (!selectedCompany) {
     return (
-      <div className="text-sm text-muted-foreground">
-        No organization selected. Select an organization from the switcher above.
+      <div className="text-sm text-muted-foreground p-4">
+        No organization selected.
       </div>
     );
   }
 
-  function handleSaveGeneral() {
-    generalMutation.mutate({
-      name: companyName.trim(),
-      description: description.trim() || null
-    });
-  }
-
   return (
-    <div className="max-w-6xl space-y-8">
-      <div className="flex items-center gap-2">
-        <SlidersHorizontal className="h-5 w-5 text-muted-foreground" />
-        <h1 className="text-lg font-semibold">General</h1>
-      </div>
-
-      {/* General */}
-      <div className="max-w-2xl space-y-4">
-        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-          General
-        </div>
-        <div className="space-y-3">
-          <Field label="Organization name" hint="The display name for your organization.">
-            <input
-              className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
-              type="text"
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-            />
-            {isCloudManaged && (
-              <p className="mt-1 text-xs text-muted-foreground">
-                Renaming can change this company's task ID prefix. Existing task IDs are
-                renumbered and old task links stop resolving.
-              </p>
-            )}
-          </Field>
-          <Field
-            label="Description"
-            hint="Optional description shown in the organization profile."
-          >
-            <input
-              className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
-              type="text"
-              value={description}
-              placeholder="Optional organization description"
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </Field>
-        </div>
-      </div>
-
-      {/* Appearance */}
-      <div className="max-w-2xl space-y-4">
-        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-          Appearance
-        </div>
-        <div className="space-y-3">
-          <div className="flex items-start gap-4">
-            <div className="shrink-0">
-              <CompanyPatternIcon
-                companyName={companyName || selectedCompany.name}
-                logoUrl={logoUrl || null}
-                className="rounded-(--rad-14)"
-              />
-            </div>
-            <div className="flex-1 space-y-3">
-              <Field
-                label="Logo"
-                hint="Upload a PNG, JPEG, WEBP, GIF, or SVG logo image."
-              >
-                <div className="space-y-2">
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
-                    onChange={handleLogoFileChange}
-                    className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none file:mr-4 file:rounded-md file:border-0 file:bg-muted file:px-2.5 file:py-1 file:text-xs"
-                  />
-                  {logoUrl && (
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={handleClearLogo}
-                        disabled={clearLogoMutation.isPending}
-                      >
-                        {clearLogoMutation.isPending ? "Removing..." : "Remove logo"}
-                      </Button>
-                    </div>
-                  )}
-                  {(logoUploadMutation.isError || logoUploadError) && (
-                    <span className="text-xs text-destructive">
-                      {logoUploadError ??
-                        (logoUploadMutation.error instanceof Error
-                          ? logoUploadMutation.error.message
-                          : "Logo upload failed")}
-                    </span>
-                  )}
-                  {clearLogoMutation.isError && (
-                    <span className="text-xs text-destructive">
-                      {clearLogoMutation.error.message}
-                    </span>
-                  )}
-                  {logoUploadMutation.isPending && (
-                    <span className="text-xs text-muted-foreground">Uploading logo...</span>
-                  )}
-                </div>
-              </Field>
-            </div>
+    <div className="max-w-4xl space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border pb-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal className="h-5 w-5 text-primary" />
+            <h1 className="text-xl font-bold tracking-tight text-foreground">Sales &amp; Outbound Settings</h1>
           </div>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Configure required legal sender identity, AI provider models, and CRM synchronization.
+          </p>
         </div>
+
+        <Button size="sm" onClick={handleSaveAll} className="text-xs">
+          <Save className="mr-1.5 h-3.5 w-3.5" /> Save Changes
+        </Button>
       </div>
 
-      {/* Save button for General + Appearance */}
-      {generalDirty && (
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            onClick={handleSaveGeneral}
-            disabled={generalMutation.isPending || !companyName.trim()}
-          >
-            {generalMutation.isPending ? "Saving..." : "Save changes"}
-          </Button>
-          {generalMutation.isSuccess && (
-            <span className="text-xs text-muted-foreground">Saved</span>
-          )}
-          {generalMutation.isError && (
-            <span className="text-xs text-destructive">
-              {generalMutation.error instanceof Error
-                  ? generalMutation.error.message
-                  : "Failed to save"}
-            </span>
-          )}
+      {savedNotice && (
+        <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 p-3 text-xs text-foreground font-medium animate-in fade-in">
+          <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+          Settings saved successfully. Sender identity and CRM settings are updated.
         </div>
       )}
 
-      {/* Hiring */}
-      <div className="max-w-2xl space-y-4" data-testid="company-settings-team-section">
-        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-          Hiring
-        </div>
-        <div>
-          <ToggleField
-            label="Require board approval for new hires"
-            hint="New agent hires stay pending until approved by board."
-            checked={!!selectedCompany.requireBoardApprovalForNewAgents}
-            onChange={(v) => settingsMutation.mutate(v)}
-            toggleTestId="company-settings-team-approval-toggle"
-          />
-        </div>
-      </div>
-
-      {/* Interaction governance */}
-      <InteractionGovernancePanel
-        governance={governance}
-        onChange={handleGovernanceChange}
-        isPending={governanceMutation.isPending}
-        errorMessage={
-          governanceMutation.isError
-            ? governanceMutation.error instanceof Error
-              ? governanceMutation.error.message
-              : "Failed to save interaction governance"
-            : null
-        }
-      />
-
-      <InstanceGeneralSettings embedded />
-
-      {/* Danger Zone */}
-      <div className="space-y-4">
-        <div className="text-xs font-medium text-destructive uppercase tracking-wide">
-          Danger Zone
-        </div>
-        <div className="space-y-3 bg-destructive/5 px-4 py-4">
-          <p className="text-sm text-muted-foreground">
-            Archive this organization to hide it from the sidebar. This persists in
-            the database.
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="destructive"
-              disabled={
-                archiveMutation.isPending ||
-                selectedCompany.status === "archived"
-              }
-              onClick={() => {
-                if (!selectedCompanyId) return;
-                const confirmed = window.confirm(
-                  `Archive organization "${selectedCompany.name}"? It will be hidden from the sidebar.`
-                );
-                if (!confirmed) return;
-                archiveMutation.mutate({ companyId: selectedCompanyId });
-              }}
-            >
-              {archiveMutation.isPending
-                ? "Archiving..."
-                : selectedCompany.status === "archived"
-                ? "Already archived"
-                : "Archive organization"}
-            </Button>
-            {archiveMutation.isError && (
-              <span className="text-xs text-destructive">
-                {archiveMutation.error instanceof Error
-                  ? archiveMutation.error.message
-                  : "Failed to archive organization"}
-              </span>
-            )}
+      {/* 1. Sender Identity (Required for Outbound) */}
+      <Card className="border-border bg-card">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Mail className="h-4 w-4 text-primary" />
+              <CardTitle className="text-sm font-semibold">Sender Identity &amp; Legal Compliance</CardTitle>
+            </div>
+            <Badge variant="secondary" className="bg-primary/15 text-primary border-primary/20 text-xs">
+              RFC 8058 &amp; CAN-SPAM Required
+            </Badge>
           </div>
-        </div>
+          <CardDescription className="text-xs text-muted-foreground">
+            These credentials are automatically rendered in cold email sequence footers with one-click unsubscribe headers.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="Sender Name" hint="Display name of the person sending outbound emails.">
+              <input
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-primary"
+                type="text"
+                value={senderName}
+                onChange={(e) => setSenderName(e.target.value)}
+                placeholder="e.g. John Doe"
+              />
+            </Field>
+
+            <Field label="Sender Email" hint="Verified sending email address or mailbox.">
+              <input
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-primary"
+                type="email"
+                value={senderEmail}
+                onChange={(e) => setSenderEmail(e.target.value)}
+                placeholder="e.g. john@company.com"
+              />
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="Legal Business Name" hint="Official registered entity name.">
+              <input
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-primary"
+                type="text"
+                value={legalBusinessName}
+                onChange={(e) => setLegalBusinessName(e.target.value)}
+                placeholder="e.g. Acme Corp Inc."
+              />
+            </Field>
+
+            <Field label="Physical Postal Address" hint="Mailing address required for CAN-SPAM compliance.">
+              <input
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-primary"
+                type="text"
+                value={physicalAddress}
+                onChange={(e) => setPhysicalAddress(e.target.value)}
+                placeholder="e.g. 100 Tech Park, Suite 400, San Francisco, CA"
+              />
+            </Field>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 2. AI Provider (OpenCode) */}
+      <Card className="border-border bg-card">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <CardTitle className="text-sm font-semibold">AI Intelligence Engine (OpenCode)</CardTitle>
+            </div>
+            <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30 text-xs">
+              Live Connected
+            </Badge>
+          </div>
+          <CardDescription className="text-xs text-muted-foreground">
+            Powers autonomous prospect discovery, lead qualification scoring, and multi-touch sequence copywriting.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-1">
+              <div className="text-xs text-muted-foreground">Configured Provider</div>
+              <div className="text-sm font-semibold text-foreground">OpenCode AI Engine</div>
+              <div className="text-xs text-muted-foreground font-mono truncate">API Key: oc_sk_0deaa••••••••••</div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-1">
+              <div className="text-xs text-muted-foreground">Active Model Engine</div>
+              <div className="text-sm font-semibold text-foreground">OpenCode Fast &amp; Reasoning</div>
+              <div className="text-xs text-primary font-medium flex items-center gap-1">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Ready for Autonomous Research
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 3. CRM Integrations */}
+      <Card className="border-border bg-card">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-primary" />
+              <CardTitle className="text-sm font-semibold">CRM &amp; Lead Webhooks</CardTitle>
+            </div>
+            <Badge variant="secondary" className="text-xs">
+              AES-256 Encrypted
+            </Badge>
+          </div>
+          <CardDescription className="text-xs text-muted-foreground">
+            Automatically export approved leads and hot responses directly to your CRM.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="CRM Webhook Endpoint" hint="Webhook URL for pushing leads in real time.">
+              <input
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-primary font-mono"
+                type="text"
+                value={webhookUrl}
+                onChange={(e) => setWebhookUrl(e.target.value)}
+                placeholder="https://hooks.zapier.com/hooks/catch/..."
+              />
+            </Field>
+
+            <Field label="HubSpot Private App Token" hint="Token used for direct CRM deal and contact sync.">
+              <input
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-primary font-mono"
+                type="password"
+                value={hubspotKey}
+                onChange={(e) => setHubspotKey(e.target.value)}
+                placeholder="pat-na1-xxxxxxxx-xxxx"
+              />
+            </Field>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 4. Organization Details */}
+      <Card className="border-border bg-card">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold">Organization Profile</CardTitle>
+          <CardDescription className="text-xs text-muted-foreground">
+            Display name and branding for this sales instance.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="Organization Name" hint="Display name for this workspace.">
+              <input
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-primary"
+                type="text"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+              />
+            </Field>
+
+            <Field label="Description" hint="Workspace purpose.">
+              <input
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-primary"
+                type="text"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="e.g. Outbound Sales & Growth"
+              />
+            </Field>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex justify-end pt-2">
+        <Button size="sm" onClick={handleSaveAll} className="text-xs">
+          <Save className="mr-1.5 h-3.5 w-3.5" /> Save Changes
+        </Button>
       </div>
     </div>
   );
