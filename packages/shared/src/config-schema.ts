@@ -16,7 +16,7 @@ export const configMetaSchema = z.object({
 }).passthrough();
 
 export const llmConfigSchema = z.object({
-  provider: z.enum(["claude", "openai"]),
+  provider: z.enum(["gemini", "opencode", "claude", "openai"]),
   apiKey: z.string().optional(),
 }).passthrough();
 

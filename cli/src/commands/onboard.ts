@@ -602,32 +602,20 @@ export async function onboard(opts: OnboardOptions): Promise<void> {
       const s = p.spinner();
       s.start("Validating API key...");
       try {
-        if (llm.provider === "claude") {
-          const res = await fetch("https://api.anthropic.com/v1/messages", {
-            method: "POST",
-            headers: {
-              "x-api-key": llm.apiKey,
-              "anthropic-version": "2023-06-01",
-              "content-type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "claude-sonnet-4-5-20250929",
-              max_tokens: 1,
-              messages: [{ role: "user", content: "hi" }],
-            }),
-          });
-          if (res.ok || res.status === 400) {
+        if (llm.provider === "gemini") {
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${llm.apiKey}`);
+          if (res.ok) {
             s.stop("API key is valid");
-          } else if (res.status === 401) {
+          } else if (res.status === 400 || res.status === 403 || res.status === 401) {
             s.stop(pc.yellow("API key appears invalid — you can update it later"));
           } else {
             s.stop(pc.yellow("Could not validate API key — continuing anyway"));
           }
         } else {
-          const res = await fetch("https://api.openai.com/v1/models", {
+          const res = await fetch("https://openrouter.ai/api/v1/models", {
             headers: { Authorization: `Bearer ${llm.apiKey}` },
           });
-          if (res.ok) {
+          if (res.ok || res.status === 200) {
             s.stop("API key is valid");
           } else if (res.status === 401) {
             s.stop(pc.yellow("API key appears invalid — you can update it later"));

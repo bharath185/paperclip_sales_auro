@@ -17,8 +17,8 @@ export async function promptLlm(): Promise<LlmConfig | undefined> {
   const provider = await p.select({
     message: "LLM provider",
     options: [
-      { value: "claude" as const, label: "Claude (Anthropic)" },
-      { value: "openai" as const, label: "OpenAI" },
+      { value: "gemini" as const, label: "Gemini (Google)" },
+      { value: "opencode" as const, label: "OpenCode" },
     ],
   });
 
@@ -28,7 +28,7 @@ export async function promptLlm(): Promise<LlmConfig | undefined> {
   }
 
   const apiKey = await p.password({
-    message: `${provider === "claude" ? "Anthropic" : "OpenAI"} API key`,
+    message: `${provider === "gemini" ? "Gemini" : "OpenCode"} API key`,
     validate: (val) => {
       if (!val) return "API key is required";
     },

@@ -154,12 +154,22 @@ const ONBOARDING_EXCLUDED_ADAPTER_TYPES = new Set([
   "process",
   "http",
   "paperclip_runner",
+  "claude_local",
+  "codex_local",
+  "cursor",
+  "cursor_cloud",
+  "grok_local",
+  "kimi_local",
+  "hermes_gateway",
+  "hermes_local",
+  "pi_local",
+  "openclaw_gateway",
 ]);
 
 function restoreOnboardingAdapterType(savedAdapterType: unknown): AdapterType {
-  return typeof savedAdapterType === "string" && savedAdapterType !== "paperclip_runner"
+  return typeof savedAdapterType === "string" && (savedAdapterType === "gemini_local" || savedAdapterType === "opencode_local")
     ? savedAdapterType
-    : "claude_local";
+    : "gemini_local";
 }
 
 /**
@@ -213,6 +223,8 @@ function adapterConfigHasAnthropicApiKey(config: Record<string, unknown>): boole
  * rather than a gap where a tile should be.
  */
 const MODEL_SOURCE_BRAND_MARKS: Record<string, string> = {
+  gemini_local: "/brands/adapters/gemini-color.svg",
+  opencode_local: "/brands/adapters/opencode.svg",
   claude_local: "/brands/claude-color.svg",
 };
 
@@ -249,6 +261,8 @@ const MODEL_SOURCE_INLINE_MARKS: Record<string, ComponentType<{ className?: stri
  * hint; this is the same knowledge, in a form the key field can use.
  */
 const API_KEY_ENV_KEYS: Record<string, string> = {
+  gemini_local: "GEMINI_API_KEY",
+  opencode_local: "OPENROUTER_API_KEY",
   claude_local: ANTHROPIC_API_KEY_ENV_KEY,
   codex_local: "OPENAI_API_KEY",
 };
