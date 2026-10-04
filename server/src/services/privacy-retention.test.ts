@@ -12,8 +12,8 @@ describe("Privacy Controls: Lead Export, Retention Policy & Audit Logging", () =
     app = express();
     app.use(express.json());
     app.use((req, _res, next) => {
-      req.companyId = companyId;
-      req.actor = {
+      (req as any).companyId = companyId;
+      (req as any).actor = {
         type: "board",
         userId: "user-admin",
         source: "session",
@@ -32,6 +32,8 @@ describe("Privacy Controls: Lead Export, Retention Policy & Audit Logging", () =
       location: "Bengaluru",
       targetTitles: ["Plant Head"],
       offerProposition: "Precision tooling",
+      dailyLeadQuota: 50,
+      weeklyLeadQuota: 200,
     });
 
     await salesCampaignService.executeResearchStage(companyId, campaign.id);

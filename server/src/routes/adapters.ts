@@ -270,11 +270,10 @@ export function adapterRoutes(options: {
    * its model count, and load status.
    */
   router.get("/adapters", async (_req, res) => {
-    // Adapter inventory is needed by ordinary board members when creating or
-    // editing company agents. Mutating adapter management routes below remain
-    // instance-admin only because they affect the whole server runtime.
     assertBoardOrgAccess(_req);
 
+    const plugins = listAdapterPlugins();
+    const externalRecords = new Map<string, AdapterPluginRecord>(plugins.map((r) => [r.type, r]));
     const ALLOWED_BUILTIN_ADAPTERS = new Set(["gemini_local", "opencode_local", "process", "http"]);
     const registeredAdapters = listServerAdapters().filter(
       (adapter) => ALLOWED_BUILTIN_ADAPTERS.has(adapter.type) || externalRecords.has(adapter.type)

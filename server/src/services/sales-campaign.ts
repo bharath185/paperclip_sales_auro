@@ -532,14 +532,14 @@ export class SalesCampaignService {
     let alreadyDispatchedCount = 0;
 
     for (const lead of batch.leads) {
-      if (lead.status === 'dispatched' || lead.status === 'sent') {
+      if (lead.status === 'sequence_active') {
         alreadyDispatchedCount++;
         continue;
       }
 
       if (lead.status === 'approved') {
-        // Mark as dispatched
-        lead.status = 'dispatched';
+        // Mark as sequence active
+        lead.status = 'sequence_active';
         dispatchedCount++;
         campaign.stats.emailsSent++;
       }

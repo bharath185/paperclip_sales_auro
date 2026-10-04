@@ -138,7 +138,30 @@ export async function validateAiApiKey(
   key: string,
   request: typeof fetch = fetch,
 ) {
-  const endpoints = {
+  if (provider === "gemini") {
+    let response: Response;
+    try {
+      response = await request(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}`, {
+        redirect: "error",
+        signal: AbortSignal.timeout(15000),
+      });
+    } catch {
+      throw unprocessable("Could not verify the Gemini account. Try again.");
+    }
+    await response.body?.cancel();
+    if (!response.ok) {
+      throw unprocessable(
+        response.status === 400 || response.status === 401 || response.status === 403
+          ? "Google Gemini rejected this API key."
+          : "Could not verify the Gemini account. Try again.",
+      );
+    }
+    return;
+  }
+
+  const endpoints: Record<string, string> = {
+    gemini: `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}`,
+    opencode: "https://openrouter.ai/api/v1/key",
     anthropic: "https://api.anthropic.com/v1/models?limit=1",
     openai: "https://api.openai.com/v1/models",
     openrouter: "https://openrouter.ai/api/v1/key",
@@ -146,7 +169,7 @@ export async function validateAiApiKey(
   };
   let response: Response;
   try {
-    response = await request(endpoints[provider], {
+    response = await request(endpoints[provider] ?? "https://openrouter.ai/api/v1/key", {
       redirect: "error",
       signal: AbortSignal.timeout(15000),
       headers:

@@ -3,7 +3,8 @@ import {
   SalesCampaignService,
   type CampaignBrief,
 } from "./sales-campaign.js";
-import { HubSpotConnector, type LeadRecord } from "./sales-crm.js";
+import { HubSpotConnector } from "./sales-crm.js";
+import type { LeadRecord } from "./sales-research.js";
 
 describe("Sales Resilience & Fault Tolerance", () => {
   let service: SalesCampaignService;
@@ -92,7 +93,7 @@ describe("Sales Resilience & Fault Tolerance", () => {
         leadScore: 92,
         notes: "High intent precision tooling",
         createdAt: new Date().toISOString(),
-      };
+      } as unknown as LeadRecord;
 
       const crm = new HubSpotConnector({
         provider: "hubspot",
