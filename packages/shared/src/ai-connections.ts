@@ -82,11 +82,17 @@ export const AI_CONNECTION_CAPABILITIES: Record<
   gemini: {
     name: "Gemini",
     methods: {
-      api_key: { adapters: ["gemini_local"], envKey: "GEMINI_API_KEY" },
+      api_key: { adapters: ["gemini_local", "opencode_local"], envKey: "GEMINI_API_KEY" },
     },
   },
   opencode: {
     name: "OpenCode",
+    methods: {
+      api_key: { adapters: ["opencode_local", "gemini_local"], envKey: "OPENROUTER_API_KEY" },
+    },
+  },
+  openrouter: {
+    name: "OpenRouter",
     methods: {
       api_key: { adapters: ["opencode_local"], envKey: "OPENROUTER_API_KEY" },
     },
@@ -106,12 +112,6 @@ export const AI_CONNECTION_CAPABILITIES: Record<
     methods: {
       subscription: { adapters: ["codex_local"], envKey: "CODEX_HOME" },
       api_key: { adapters: ["codex_local"], envKey: "OPENAI_API_KEY" },
-    },
-  },
-  openrouter: {
-    name: "OpenRouter",
-    methods: {
-      api_key: { adapters: ["opencode_local"], envKey: "OPENROUTER_API_KEY" },
     },
   },
   xai: {
@@ -141,15 +141,13 @@ export function isAiConnectionCompatible(
           : runnerProvider === "opencode"
             ? "opencode_local"
             : "unsupported";
-  const methods = AI_CONNECTION_CAPABILITIES[requirement.provider].methods;
+  const capability = AI_CONNECTION_CAPABILITIES[requirement.provider];
+  if (!capability) return false;
+  const methods = capability.methods;
   const candidates = "mode" in requirement && requirement.mode === "responsible_user"
     ? Object.values(methods)
     : requirement.method ? [methods[requirement.method]] : [];
-  return (
-    candidates.some((method) => method?.adapters.includes(adapterType)) &&
-    (requirement.provider !== "openrouter" ||
-      (typeof model === "string" && model.startsWith("openrouter/")))
-  );
+  return candidates.some((method) => method?.adapters.includes(adapterType));
 }
 export type AiConnectionUnavailableReason =
   | "responsible_user_missing"
