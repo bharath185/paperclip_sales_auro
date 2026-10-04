@@ -681,7 +681,7 @@ async function readCatalogTeamSourceFiles(team: CatalogTeam): Promise<Record<str
 /**
  * Default safe adapter for catalog agents imported through the agent-safe path.
  */
-const FALLBACK_SAFE_CATALOG_ADAPTER_TYPE = "claude_local";
+const FALLBACK_SAFE_CATALOG_ADAPTER_TYPE = "gemini_local";
 
 function defaultSafeCatalogAdapterType() {
   return process.env.PAPERCLIP_TEAMS_CATALOG_DEFAULT_ADAPTER_TYPE?.trim() || FALLBACK_SAFE_CATALOG_ADAPTER_TYPE;

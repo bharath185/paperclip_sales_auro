@@ -54,19 +54,8 @@ setDynamicParserResultNotifier(notifyAdapterChange);
 
 function registerBuiltInUIAdapters() {
   for (const adapter of [
-    claudeLocalUIAdapter,
-    codexLocalUIAdapter,
-    paperclipRunnerUIAdapter,
-    cursorCloudUIAdapter,
     geminiLocalUIAdapter,
-    grokLocalUIAdapter,
-    kimiLocalUIAdapter,
-    hermesGatewayUIAdapter,
-    hermesLocalUIAdapter,
     openCodeLocalUIAdapter,
-    piLocalUIAdapter,
-    cursorLocalUIAdapter,
-    openClawGatewayUIAdapter,
     processUIAdapter,
     httpUIAdapter,
   ]) {

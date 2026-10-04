@@ -556,7 +556,7 @@ function ConflictResolutionList({
 
 // ── Adapter type options for import ───────────────────────────────────
 
-const FALLBACK_IMPORT_ADAPTER_TYPE = "claude_local";
+const FALLBACK_IMPORT_ADAPTER_TYPE = "gemini_local";
 const IMPORT_ADAPTER_OPTIONS: { value: string; label: string }[] = listUIAdapters().map((adapter) => ({
   value: adapter.type,
   label: adapterLabels[adapter.type] ?? getAdapterLabel(adapter.type),

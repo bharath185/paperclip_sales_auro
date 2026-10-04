@@ -31,7 +31,7 @@ const SEEDED_AGENT_ROLE = "ceo";
  * (`claude_local`), which is the safe adapter for agents created server-side
  * without a human running an environment test first.
  */
-const FALLBACK_SEEDED_AGENT_ADAPTER_TYPE = "claude_local";
+const FALLBACK_SEEDED_AGENT_ADAPTER_TYPE = "gemini_local";
 
 function seededAgentAdapterType() {
   const configured = process.env.PAPERCLIP_ONBOARDING_SEED_ADAPTER_TYPE?.trim()

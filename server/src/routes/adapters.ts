@@ -275,9 +275,9 @@ export function adapterRoutes(options: {
     // instance-admin only because they affect the whole server runtime.
     assertBoardOrgAccess(_req);
 
-    const registeredAdapters = listServerAdapters();
-    const externalRecords = new Map(
-      listAdapterPlugins().map((r) => [r.type, r]),
+    const ALLOWED_BUILTIN_ADAPTERS = new Set(["gemini_local", "opencode_local", "process", "http"]);
+    const registeredAdapters = listServerAdapters().filter(
+      (adapter) => ALLOWED_BUILTIN_ADAPTERS.has(adapter.type) || externalRecords.has(adapter.type)
     );
     const disabledSet = new Set(getDisabledAdapterTypes());
     const nativeRunnerEnabled = await options.getNativeRunnerEnabled?.().catch(() => false) ?? false;

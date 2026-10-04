@@ -7,6 +7,14 @@ export const AI_PROVIDERS: Record<
   AiProvider,
   { name: string; subscriptionName?: string; logo?: string }
 > = {
+  gemini: {
+    name: "Gemini",
+    logo: "/brands/adapters/gemini-color.svg",
+  },
+  opencode: {
+    name: "OpenCode",
+    logo: "/brands/adapters/opencode.svg",
+  },
   anthropic: {
     name: "Claude",
     subscriptionName: "Claude subscription",

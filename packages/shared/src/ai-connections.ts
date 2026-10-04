@@ -27,6 +27,8 @@ export type ConnectionPurposeTransport = z.infer<
 >;
 
 export const AI_PROVIDERS = [
+  "gemini",
+  "opencode",
   "anthropic",
   "openai",
   "openrouter",
@@ -77,6 +79,18 @@ export const AI_CONNECTION_CAPABILITIES: Record<
     >;
   }
 > = {
+  gemini: {
+    name: "Gemini",
+    methods: {
+      api_key: { adapters: ["gemini_local"], envKey: "GEMINI_API_KEY" },
+    },
+  },
+  opencode: {
+    name: "OpenCode",
+    methods: {
+      api_key: { adapters: ["opencode_local"], envKey: "OPENROUTER_API_KEY" },
+    },
+  },
   anthropic: {
     name: "Claude",
     methods: {

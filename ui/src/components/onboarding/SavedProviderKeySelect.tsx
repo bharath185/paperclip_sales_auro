@@ -17,7 +17,14 @@ export function useSavedProviderKeys(
   envKey: string,
   enabled = true,
 ) {
-  const provider = ({ ANTHROPIC_API_KEY: "anthropic", OPENAI_API_KEY: "openai", OPENROUTER_API_KEY: "openrouter", XAI_API_KEY: "xai" } as Record<string, AiProvider>)[envKey];
+  const provider = ({
+    GEMINI_API_KEY: "gemini",
+    OPENCODE_API_KEY: "opencode",
+    OPENROUTER_API_KEY: "opencode",
+    ANTHROPIC_API_KEY: "anthropic",
+    OPENAI_API_KEY: "openai",
+    XAI_API_KEY: "xai",
+  } as Record<string, AiProvider>)[envKey];
   const managed = useQuery({
     queryKey: ["ai-connections", companyId],
     queryFn: () => aiConnectionsApi.list(companyId!),
