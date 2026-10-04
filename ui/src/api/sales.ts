@@ -133,6 +133,16 @@ export interface HotLeadEventDto {
   notifiedHuman: boolean;
 }
 
+export interface ResearchLogDto {
+  timestamp: string;
+  campaignId: string;
+  prompt: string;
+  modelUsed: string;
+  rawResponse: string;
+  parsedLeadsCount: number;
+  validLeadsCount: number;
+}
+
 export const salesApi = {
   provisionSalesOrg: (companyId: string) =>
     api.post<SalesOrgStatus>(`/companies/${companyId}/sales/org/provision`, {}),
@@ -161,10 +171,13 @@ export const salesApi = {
     api.get<CampaignRecordDto>(`/companies/${companyId}/sales/campaigns/${campaignId}`),
 
   runResearch: (companyId: string, campaignId: string) =>
-    api.post<{ success: boolean; count: number; leads: LeadRecordDto[] }>(
+    api.post<{ success: boolean; count: number; leads: LeadRecordDto[]; log?: ResearchLogDto }>(
       `/companies/${companyId}/sales/campaigns/${campaignId}/research`,
       {}
     ),
+
+  getResearchLog: (companyId: string, campaignId: string) =>
+    api.get<ResearchLogDto>(`/companies/${companyId}/sales/campaigns/${campaignId}/research-log`),
 
   listLeads: async (companyId: string, campaignId: string): Promise<LeadRecordDto[]> => {
     const res = await api.get<any>(`/companies/${companyId}/sales/campaigns/${campaignId}/leads`);

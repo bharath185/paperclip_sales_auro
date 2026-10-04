@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { salesApi, type LeadRecordDto, type CampaignRecordDto } from "@/api/sales";
+import { salesApi, type LeadRecordDto, type CampaignRecordDto, type ResearchLogDto } from "@/api/sales";
 import {
   Search,
   Download,
@@ -19,6 +19,10 @@ import {
   Filter,
   Layers,
   ArrowUpDown,
+  Terminal,
+  Copy,
+  Check,
+  Code,
 } from "lucide-react";
 
 interface LeadCenterProps {
@@ -35,6 +39,11 @@ export function LeadCenter({ companyId, campaign }: LeadCenterProps) {
   const [stageFilter, setStageFilter] = useState<string>("all");
   const [minScoreFilter, setMinScoreFilter] = useState<number>(0);
   const [selectedLead, setSelectedLead] = useState<LeadRecordDto | null>(null);
+  const [showRawLogModal, setShowRawLogModal] = useState(false);
+  const [researchLog, setResearchLog] = useState<ResearchLogDto | null>(null);
+  const [loadingLog, setLoadingLog] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [showLeadRawJson, setShowLeadRawJson] = useState(false);
 
   const campaignId = campaign?.id || "camp-default";
 
@@ -52,6 +61,20 @@ export function LeadCenter({ companyId, campaign }: LeadCenterProps) {
     }
   };
 
+  const fetchResearchLog = async () => {
+    if (!campaign?.id) return;
+    setLoadingLog(true);
+    try {
+      const log = await salesApi.getResearchLog(companyId, campaign.id);
+      setResearchLog(log);
+      setShowRawLogModal(true);
+    } catch (err) {
+      console.error("Failed to load research log", err);
+    } finally {
+      setLoadingLog(false);
+    }
+  };
+
   useEffect(() => {
     fetchLeads();
   }, [companyId, campaign?.id]);
@@ -60,13 +83,22 @@ export function LeadCenter({ companyId, campaign }: LeadCenterProps) {
     if (!campaign?.id) return;
     setResearching(true);
     try {
-      await salesApi.runResearch(companyId, campaign.id);
+      const res = await salesApi.runResearch(companyId, campaign.id);
+      if (res.log) {
+        setResearchLog(res.log);
+      }
       await fetchLeads();
     } catch (err) {
       console.error("Research run failed", err);
     } finally {
       setResearching(false);
     }
+  };
+
+  const handleCopyJson = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleSyncCrm = async () => {
@@ -114,6 +146,17 @@ export function LeadCenter({ companyId, campaign }: LeadCenterProps) {
               >
                 <Sparkles className={`mr-1.5 h-3.5 w-3.5 text-primary ${researching ? "animate-spin" : ""}`} />
                 {researching ? "AI Researchers Searching Web & Registry..." : "Dispatch AI Researchers"}
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchResearchLog}
+                disabled={loadingLog}
+                className="text-xs"
+              >
+                <Terminal className="mr-1.5 h-3.5 w-3.5 text-primary" />
+                Raw AI Response &amp; Prompt
               </Button>
 
               <Button
@@ -293,9 +336,20 @@ export function LeadCenter({ companyId, campaign }: LeadCenterProps) {
                 {selectedLead.companyDomain || (selectedLead as any).domain} • {selectedLead.locationCity || (selectedLead as any).location || "Bengaluru"}
               </p>
             </div>
-            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedLead(null)}>
-              Close
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs"
+                onClick={() => setShowLeadRawJson(!showLeadRawJson)}
+              >
+                <Code className="mr-1 h-3 w-3" />
+                {showLeadRawJson ? "Hide Raw JSON" : "View Raw JSON"}
+              </Button>
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedLead(null)}>
+                Close
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
@@ -318,7 +372,110 @@ export function LeadCenter({ companyId, campaign }: LeadCenterProps) {
               <div className="text-muted-foreground">Outbound Dispatch: Disabled / Safe Mode</div>
             </div>
           </div>
+
+          {showLeadRawJson && (
+            <div className="rounded-md bg-muted/50 border border-border p-3 space-y-2 mt-2">
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-medium text-foreground">Raw Lead Intelligence Object (JSON)</span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 text-xs"
+                  onClick={() => handleCopyJson(JSON.stringify(selectedLead, null, 2))}
+                >
+                  {copied ? <Check className="h-3 w-3 text-primary mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
+                  {copied ? "Copied" : "Copy"}
+                </Button>
+              </div>
+              <pre className="text-xs font-mono bg-background p-3 rounded border border-border overflow-x-auto max-h-60 text-foreground">
+                {JSON.stringify(selectedLead, null, 2)}
+              </pre>
+            </div>
+          )}
         </Card>
+      )}
+
+      {/* Raw AI Response & Execution Modal */}
+      {showRawLogModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <Card className="w-full max-w-3xl max-h-screen flex flex-col border-border bg-card shadow-2xl overflow-hidden">
+            <CardHeader className="pb-3 border-b border-border flex flex-row items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Terminal className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-base font-semibold text-foreground">
+                    Raw AI Response &amp; Execution Telemetry
+                  </CardTitle>
+                </div>
+                <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                  Inspect the live model prompts, raw JSON response, and safety verification diagnostics.
+                </CardDescription>
+              </div>
+              <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setShowRawLogModal(false)}>
+                Close
+              </Button>
+            </CardHeader>
+
+            <CardContent className="space-y-4 p-4 overflow-y-auto flex-1 text-xs">
+              {researchLog ? (
+                <div className="space-y-4">
+                  {/* Meta Bar */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    <div className="rounded border border-border bg-muted/30 p-2">
+                      <span className="text-muted-foreground block">Active Model</span>
+                      <span className="font-semibold text-foreground">{researchLog.modelUsed}</span>
+                    </div>
+                    <div className="rounded border border-border bg-muted/30 p-2">
+                      <span className="text-muted-foreground block">Execution Time</span>
+                      <span className="font-semibold text-foreground">
+                        {new Date(researchLog.timestamp).toLocaleTimeString()}
+                      </span>
+                    </div>
+                    <div className="rounded border border-border bg-muted/30 p-2">
+                      <span className="text-muted-foreground block">Raw Extracted</span>
+                      <span className="font-semibold text-foreground">{researchLog.parsedLeadsCount} leads</span>
+                    </div>
+                    <div className="rounded border border-border bg-muted/30 p-2">
+                      <span className="text-muted-foreground block">Verified &amp; Scored</span>
+                      <span className="font-semibold text-primary">{researchLog.validLeadsCount} valid</span>
+                    </div>
+                  </div>
+
+                  {/* Prompt Sent */}
+                  <div className="space-y-1.5">
+                    <span className="font-semibold text-foreground block">Prompt Sent to AI Researcher Agent:</span>
+                    <pre className="font-mono text-xs bg-muted/40 p-3 rounded border border-border whitespace-pre-wrap text-muted-foreground">
+                      {researchLog.prompt}
+                    </pre>
+                  </div>
+
+                  {/* Raw Response */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold text-foreground">Raw Model JSON Output:</span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 text-xs"
+                        onClick={() => handleCopyJson(researchLog.rawResponse)}
+                      >
+                        {copied ? <Check className="h-3 w-3 text-primary mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
+                        {copied ? "Copied" : "Copy Raw JSON"}
+                      </Button>
+                    </div>
+                    <pre className="font-mono text-xs bg-background p-3 rounded border border-border overflow-x-auto max-h-72 text-foreground">
+                      {researchLog.rawResponse}
+                    </pre>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-8 text-center text-muted-foreground">
+                  No execution logs recorded yet. Click "Dispatch AI Researchers" to run live lead discovery.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );

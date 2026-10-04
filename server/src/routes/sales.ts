@@ -235,7 +235,22 @@ export function salesRoutes(db: Db) {
       const campaignId = getParam(req.params.campaignId);
 
       const leads = await salesCampaignService.executeResearchStage(companyId, campaignId);
-      res.json({ success: true, count: leads.length, leads });
+      const log = await salesCampaignService.getResearchLog(companyId, campaignId);
+      res.json({ success: true, count: leads.length, leads, log });
+    }
+  );
+
+  router.get(
+    "/companies/:companyId/sales/campaigns/:campaignId/research-log",
+    async (req: Request, res) => {
+      const companyId = resolveCompanyId(req);
+      const campaignId = getParam(req.params.campaignId);
+
+      const log = await salesCampaignService.getResearchLog(companyId, campaignId);
+      if (!log) {
+        throw notFound("No research execution log found for this campaign");
+      }
+      res.json(log);
     }
   );
 

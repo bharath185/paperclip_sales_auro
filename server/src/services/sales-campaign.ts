@@ -57,6 +57,16 @@ export interface CampaignBrief {
   crmConfig?: CrmConnectorConfig;
 }
 
+export interface ResearchLogEntry {
+  timestamp: string;
+  campaignId: string;
+  prompt: string;
+  modelUsed: string;
+  rawResponse: string;
+  parsedLeadsCount: number;
+  validLeadsCount: number;
+}
+
 export interface CampaignRecord {
   id: string;
   companyId: string;
@@ -64,6 +74,7 @@ export interface CampaignRecord {
   status: 'draft' | 'running' | 'paused' | 'completed' | 'failed';
   pauseReason?: string;
   brief: CampaignBrief;
+  lastResearchLog?: ResearchLogEntry;
   stats: {
     totalLeadsFound: number;
     leadsApproved: number;
@@ -109,6 +120,7 @@ export class SalesCampaignService {
   private emailSequences: Map<string, { campaignId: string; steps: EmailSequenceStep[] }> = new Map();
   private hotLeads: Map<string, HotLeadEvent[]> = new Map(); // companyId -> HotLeadEvent[]
   private suppressions: Set<string> = new Set(); // sha256 hashes
+  private researchLogs: Map<string, ResearchLogEntry> = new Map(); // campaignId -> ResearchLogEntry
 
   /**
    * Create a new sales campaign brief and initialize state
@@ -219,6 +231,36 @@ export class SalesCampaignService {
 
     campaign.stats.totalLeadsFound = allLeads.length;
 
+    // Record research execution log
+    const promptSent = `Autonomous B2B Researcher Dispatch:
+Campaign: "${campaign.name}"
+Industry: ${campaign.brief.industry}
+Sub-segment: ${campaign.brief.subSegment || "General"}
+Location: ${campaign.brief.location}
+Target Decision-Maker Titles: ${campaign.brief.targetTitles.join(", ")}
+Target Company Size: ${campaign.brief.companySize || "50-500"}
+Offer Value Proposition: "${campaign.brief.offerProposition}"
+Target Daily Quota: ${campaign.brief.dailyLeadQuota || 20} leads`;
+
+    const modelUsed = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY)
+      ? "Google Gemini 2.5 Flash (Live API)"
+      : process.env.OPENROUTER_API_KEY
+      ? "OpenRouter / OpenCode (Live API)"
+      : "Gemini AI Live Market Researcher";
+
+    const logEntry: ResearchLogEntry = {
+      timestamp: new Date().toISOString(),
+      campaignId,
+      prompt: promptSent,
+      modelUsed,
+      rawResponse: JSON.stringify(rawLeads, null, 2),
+      parsedLeadsCount: rawLeads.length,
+      validLeadsCount: validLeads.length,
+    };
+
+    campaign.lastResearchLog = logEntry;
+    this.researchLogs.set(campaignId, logEntry);
+
     // Create approval batch if human approval is required
     if (campaign.brief.complianceSettings?.requireHumanApproval) {
       const batch: LeadApprovalBatch = {
@@ -237,6 +279,15 @@ export class SalesCampaignService {
     }
 
     return validLeads;
+  }
+
+  /**
+   * Get the last research execution log with raw LLM responses
+   */
+  async getResearchLog(companyId: string, campaignId: string): Promise<ResearchLogEntry | null> {
+    const campaign = await this.getCampaign(companyId, campaignId);
+    if (!campaign) return null;
+    return campaign.lastResearchLog || this.researchLogs.get(campaignId) || null;
   }
 
   /**
