@@ -58,34 +58,35 @@ export interface LeadRecordDto {
   industry: string;
   subSegment?: string;
   locationCity?: string;
+  locationState?: string;
+  locationCountry?: string;
   contactName?: string;
   contactTitle?: string;
   contactEmail?: string;
   contactPhone?: string;
   contactLinkedin?: string;
-  employeeCount?: string;
-  annualRevenue?: string;
+  sourceUrl?: string;
+  verificationScore: number;
   leadScore: number;
-  verificationStatus: 'verified' | 'unverified' | 'rejected';
-  crmStage: 'new' | 'qualified' | 'contacted' | 'replied' | 'hot_lead' | 'unsubscribed';
-  dataSource?: string;
+  qualificationReasoning?: string;
+  crmStage: 'new' | 'qualified' | 'contacted' | 'replied' | 'meeting_scheduled' | 'hot_lead';
+  isSuppressed: boolean;
+  notes?: string;
   createdAt: string;
-  updatedAt: string;
 }
 
 export interface CampaignRecordDto {
   id: string;
   companyId: string;
   name: string;
-  status: 'draft' | 'running' | 'paused' | 'completed' | 'failed';
+  status: 'draft' | 'discovering' | 'review_ready' | 'active' | 'paused' | 'completed';
   brief: LeadCampaignBriefPayload;
   stats: {
     totalLeadsFound: number;
     leadsApproved: number;
-    emailsGenerated: number;
-    emailsSent: number;
+    leadsContacted: number;
     repliesReceived: number;
-    hotLeadsCount: number;
+    meetingsBooked: number;
     crmSyncedCount: number;
   };
   createdAt: string;
@@ -95,12 +96,13 @@ export interface CampaignRecordDto {
 export interface LeadApprovalBatchDto {
   id: string;
   campaignId: string;
-  companyId: string;
+  batchNumber: number;
   leads: LeadRecordDto[];
   status: 'pending' | 'approved' | 'rejected' | 'partially_approved';
+  approvedCount: number;
+  totalCount: number;
   createdAt: string;
-  decidedAt?: string;
-  decidedBy?: string;
+  approvedAt?: string;
 }
 
 export interface EmailSequenceStepDto {
@@ -113,8 +115,8 @@ export interface EmailSequenceStepDto {
 
 export interface EmailSequenceDto {
   campaignId: string;
-  campaignName: string;
   steps: EmailSequenceStepDto[];
+  updatedAt?: string;
 }
 
 export interface HotLeadEventDto {
@@ -135,8 +137,12 @@ export const salesApi = {
   provisionSalesOrg: (companyId: string) =>
     api.post<SalesOrgStatus>(`/companies/${companyId}/sales/org/provision`, {}),
 
-  listPrompts: (companyId: string) =>
-    api.get<SalesPrompt[]>(`/companies/${companyId}/sales/prompts`),
+  listPrompts: async (companyId: string): Promise<SalesPrompt[]> => {
+    const res = await api.get<any>(`/companies/${companyId}/sales/prompts`);
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray(res.prompts)) return res.prompts;
+    return [];
+  },
 
   updatePrompt: (companyId: string, role: string, content: string) =>
     api.put<SalesPrompt>(`/companies/${companyId}/sales/prompts/${role}`, { content }),
@@ -144,8 +150,12 @@ export const salesApi = {
   createCampaign: (companyId: string, brief: LeadCampaignBriefPayload) =>
     api.post<CampaignRecordDto>(`/companies/${companyId}/sales/campaigns`, brief),
 
-  listCampaigns: (companyId: string) =>
-    api.get<CampaignRecordDto[]>(`/companies/${companyId}/sales/campaigns`),
+  listCampaigns: async (companyId: string): Promise<CampaignRecordDto[]> => {
+    const res = await api.get<any>(`/companies/${companyId}/sales/campaigns`);
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray(res.campaigns)) return res.campaigns;
+    return [];
+  },
 
   getCampaign: (companyId: string, campaignId: string) =>
     api.get<CampaignRecordDto>(`/companies/${companyId}/sales/campaigns/${campaignId}`),
@@ -156,11 +166,19 @@ export const salesApi = {
       {}
     ),
 
-  listLeads: (companyId: string, campaignId: string) =>
-    api.get<LeadRecordDto[]>(`/companies/${companyId}/sales/campaigns/${campaignId}/leads`),
+  listLeads: async (companyId: string, campaignId: string): Promise<LeadRecordDto[]> => {
+    const res = await api.get<any>(`/companies/${companyId}/sales/campaigns/${campaignId}/leads`);
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray(res.leads)) return res.leads;
+    return [];
+  },
 
-  listApprovalBatches: (companyId: string, campaignId: string) =>
-    api.get<LeadApprovalBatchDto[]>(`/companies/${companyId}/sales/campaigns/${campaignId}/approvals`),
+  listApprovalBatches: async (companyId: string, campaignId: string): Promise<LeadApprovalBatchDto[]> => {
+    const res = await api.get<any>(`/companies/${companyId}/sales/campaigns/${campaignId}/approvals`);
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray(res.batches)) return res.batches;
+    return [];
+  },
 
   approveBatch: (companyId: string, campaignId: string, batchId: string, approvedLeadIds: string[]) =>
     api.post<LeadApprovalBatchDto>(
@@ -177,14 +195,22 @@ export const salesApi = {
       { crmConfig }
     ),
 
-  listHotLeads: (companyId: string) =>
-    api.get<HotLeadEventDto[]>(`/companies/${companyId}/sales/hot-leads`),
+  listHotLeads: async (companyId: string): Promise<HotLeadEventDto[]> => {
+    const res = await api.get<any>(`/companies/${companyId}/sales/hot-leads`);
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray(res.hotLeads)) return res.hotLeads;
+    return [];
+  },
 
   recordHotLead: (companyId: string, data: Omit<HotLeadEventDto, 'id' | 'detectedAt' | 'notifiedHuman'>) =>
     api.post<HotLeadEventDto>(`/companies/${companyId}/sales/hot-leads`, data),
 
-  listSuppressions: (companyId: string) =>
-    api.get<{ suppressions: string[] }>(`/companies/${companyId}/sales/suppressions`),
+  listSuppressions: async (companyId: string): Promise<{ suppressions: string[] }> => {
+    const res = await api.get<any>(`/companies/${companyId}/sales/suppressions`);
+    if (res && Array.isArray(res.suppressions)) return res;
+    if (Array.isArray(res)) return { suppressions: res };
+    return { suppressions: [] };
+  },
 
   addSuppression: (companyId: string, email: string) =>
     api.post<{ emailHash: string; success: boolean }>(`/companies/${companyId}/sales/suppressions`, { email }),

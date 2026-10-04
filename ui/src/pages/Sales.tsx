@@ -43,12 +43,14 @@ export function Sales() {
     setLoading(true);
     try {
       const data = await salesApi.listCampaigns(companyId);
-      setCampaigns(data);
-      if (data.length > 0 && !selectedCampaign) {
-        setSelectedCampaign(data[0]);
+      const safeData = Array.isArray(data) ? data : [];
+      setCampaigns(safeData);
+      if (safeData.length > 0 && !selectedCampaign) {
+        setSelectedCampaign(safeData[0]);
       }
     } catch (err) {
       console.error("Failed to load campaigns", err);
+      setCampaigns([]);
     } finally {
       setLoading(false);
     }
@@ -69,6 +71,8 @@ export function Sales() {
       setProvisioning(false);
     }
   };
+
+  const safeCampaigns = Array.isArray(campaigns) ? campaigns : [];
 
   return (
     <div className="space-y-6">
@@ -115,7 +119,7 @@ export function Sales() {
             setShowWizard(false);
           }}
         >
-          <Target className="mr-1.5 h-3.5 w-3.5" /> Campaigns ({campaigns.length})
+          <Target className="mr-1.5 h-3.5 w-3.5" /> Campaigns ({safeCampaigns.length})
         </Button>
 
         <Button
@@ -193,7 +197,7 @@ export function Sales() {
         />
       ) : activeTab === "campaigns" ? (
         <div className="space-y-4">
-          {campaigns.length === 0 ? (
+          {safeCampaigns.length === 0 ? (
             <Card className="border-border bg-card p-8 text-center space-y-3">
               <Target className="h-10 w-10 text-muted-foreground mx-auto opacity-60" />
               <div className="space-y-1">
@@ -208,7 +212,7 @@ export function Sales() {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {campaigns.map((camp) => (
+              {safeCampaigns.map((camp) => (
                 <Card
                   key={camp.id}
                   className={`border-border bg-card hover:border-primary/50 transition-colors cursor-pointer ${

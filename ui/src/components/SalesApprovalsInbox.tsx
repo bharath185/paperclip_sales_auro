@@ -26,17 +26,19 @@ export function SalesApprovalsInbox({
     setLoading(true);
     try {
       const data = await salesApi.listApprovalBatches(companyId, campaign.id);
-      setBatches(data);
+      const safeData = Array.isArray(data) ? data : [];
+      setBatches(safeData);
       // Initialize all leads in pending batches as selected by default
       const initialMap: Record<string, Set<string>> = {};
-      data.forEach((b) => {
-        if (b.status === "pending") {
+      safeData.forEach((b) => {
+        if (b.status === "pending" && Array.isArray(b.leads)) {
           initialMap[b.id] = new Set(b.leads.map((l) => l.id));
         }
       });
       setSelectedLeadIds(initialMap);
     } catch (err) {
       console.error("Failed to load approval batches", err);
+      setBatches([]);
     } finally {
       setLoading(false);
     }
@@ -84,7 +86,8 @@ export function SalesApprovalsInbox({
     }
   };
 
-  const pendingBatches = batches.filter((b) => b.status === "pending");
+  const safeBatches = Array.isArray(batches) ? batches : [];
+  const pendingBatches = safeBatches.filter((b) => b.status === "pending");
 
   return (
     <div className="space-y-4">
@@ -110,7 +113,8 @@ export function SalesApprovalsInbox({
       ) : (
         pendingBatches.map((batch) => {
           const selected = selectedLeadIds[batch.id] || new Set();
-          const allLeadIds = batch.leads.map((l) => l.id);
+          const safeLeads = Array.isArray(batch.leads) ? batch.leads : [];
+          const allLeadIds = safeLeads.map((l) => l.id);
           const isAllSelected = selected.size === allLeadIds.length && allLeadIds.length > 0;
 
           return (
@@ -119,7 +123,7 @@ export function SalesApprovalsInbox({
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <CardTitle className="text-sm font-semibold">
-                      Research Batch ({batch.leads.length} Leads)
+                      Research Batch ({safeLeads.length} Leads)
                     </CardTitle>
                     <Badge variant="secondary" className="bg-amber-500/10 text-amber-500 text-xs">
                       Pending Review
@@ -142,47 +146,61 @@ export function SalesApprovalsInbox({
 
               <CardContent className="p-0">
                 <div className="divide-y divide-border">
-                  {batch.leads.map((lead) => {
+                  {safeLeads.map((lead) => {
                     const isChecked = selected.has(lead.id);
+
                     return (
                       <div
                         key={lead.id}
-                        className={`p-3.5 flex items-center justify-between hover:bg-muted/30 transition-colors cursor-pointer ${
-                          isChecked ? "bg-accent/10" : ""
+                        className={`p-3 flex items-start gap-3 hover:bg-muted/20 transition-colors cursor-pointer ${
+                          isChecked ? "bg-primary/5" : "opacity-60"
                         }`}
                         onClick={() => toggleLeadSelection(batch.id, lead.id)}
                       >
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => toggleLeadSelection(batch.id, lead.id)}
-                            className="h-4 w-4 rounded border-border"
-                          />
+                        <button
+                          type="button"
+                          className={`mt-0.5 h-4 w-4 rounded border flex items-center justify-center transition-colors ${
+                            isChecked
+                              ? "bg-primary border-primary text-primary-foreground"
+                              : "border-muted-foreground/40 bg-background"
+                          }`}
+                          aria-label={isChecked ? "Deselect lead" : "Select lead"}
+                        >
+                          {isChecked && <Check className="h-3 w-3" />}
+                        </button>
 
-                          <div className="space-y-0.5">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-xs text-foreground">{lead.companyName}</span>
-                              <span className="text-xs text-muted-foreground">• {lead.companyDomain}</span>
+                        <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                          <div>
+                            <div className="font-semibold text-foreground flex items-center gap-1.5">
+                              {lead.companyName}
+                              <Badge variant="outline" className="text-(length:--text-nano) px-1 py-0 font-normal">
+                                {lead.subSegment || lead.industry}
+                              </Badge>
                             </div>
-                            <div className="text-xs text-muted-foreground">
-                              {lead.contactName || "Decision Maker"} ({lead.contactTitle || "Executive"}) —{" "}
-                              {lead.contactEmail}
+                            <div className="text-muted-foreground text-xs">{lead.companyDomain}</div>
+                          </div>
+
+                          <div>
+                            <div className="font-medium text-foreground">{lead.contactName || "Decision Maker"}</div>
+                            <div className="text-muted-foreground text-xs">{lead.contactTitle || "Director / VP"}</div>
+                            <div className="text-primary truncate">{lead.contactEmail}</div>
+                          </div>
+
+                          <div className="sm:text-right">
+                            <Badge
+                              variant="secondary"
+                              className={
+                                (lead.leadScore ?? 0) >= 80
+                                  ? "bg-primary/20 text-primary border-primary/30"
+                                  : "bg-muted text-muted-foreground"
+                              }
+                            >
+                              Score: {lead.leadScore ?? 0}/100
+                            </Badge>
+                            <div className="text-muted-foreground text-(length:--text-nano) mt-1">
+                              {lead.locationCity || "Bengaluru"}
                             </div>
                           </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            variant="secondary"
-                            className={
-                              lead.leadScore >= 80
-                                ? "bg-primary/20 text-primary border-primary/30"
-                                : "bg-muted text-muted-foreground"
-                            }
-                          >
-                            Score {lead.leadScore}
-                          </Badge>
                         </div>
                       </div>
                     );
@@ -190,18 +208,19 @@ export function SalesApprovalsInbox({
                 </div>
               </CardContent>
 
-              <CardFooter className="flex justify-between items-center border-t border-border pt-3">
-                <span className="text-xs text-muted-foreground">
-                  {selected.size} of {batch.leads.length} leads selected for outreach
-                </span>
+              <CardFooter className="p-3 bg-muted/20 border-t border-border flex justify-between items-center">
+                <div className="text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">{selected.size}</span> of {safeLeads.length} leads approved for sequence dispatch
+                </div>
 
                 <Button
                   size="sm"
-                  disabled={selected.size === 0 || processingBatchId === batch.id}
+                  className="text-xs"
                   onClick={() => handleApproveBatch(batch.id)}
+                  disabled={processingBatchId === batch.id || selected.size === 0}
                 >
                   <UserCheck className="mr-1.5 h-3.5 w-3.5" />
-                  Approve &amp; Schedule Sequence ({selected.size})
+                  {processingBatchId === batch.id ? "Approving..." : `Approve & Enqueue (${selected.size})`}
                 </Button>
               </CardFooter>
             </Card>

@@ -17,9 +17,10 @@ export function HotLeadsView({ companyId }: HotLeadsViewProps) {
     setLoading(true);
     try {
       const data = await salesApi.listHotLeads(companyId);
-      setHotLeads(data);
+      setHotLeads(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Failed to load hot leads", err);
+      setHotLeads([]);
     } finally {
       setLoading(false);
     }
@@ -28,6 +29,8 @@ export function HotLeadsView({ companyId }: HotLeadsViewProps) {
   useEffect(() => {
     fetchHotLeads();
   }, [companyId]);
+
+  const safeHotLeads = Array.isArray(hotLeads) ? hotLeads : [];
 
   return (
     <div className="space-y-4">
@@ -45,7 +48,7 @@ export function HotLeadsView({ companyId }: HotLeadsViewProps) {
         <Card className="border-border bg-card p-8 text-center text-xs text-muted-foreground">
           Loading hot leads stream...
         </Card>
-      ) : hotLeads.length === 0 ? (
+      ) : safeHotLeads.length === 0 ? (
         <Card className="border-border bg-card p-8 text-center space-y-2">
           <MessageSquare className="h-8 w-8 text-muted-foreground mx-auto opacity-50" />
           <p className="text-sm font-medium text-foreground">No Hot Inbound Replies Yet</p>
@@ -55,39 +58,44 @@ export function HotLeadsView({ companyId }: HotLeadsViewProps) {
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-3">
-          {hotLeads.map((hl) => (
+          {safeHotLeads.map((hl) => (
             <Card key={hl.id} className="border-border bg-card">
               <CardHeader className="pb-2 flex flex-row items-start justify-between">
-                <div className="space-y-1">
+                <div>
                   <div className="flex items-center gap-2">
-                    <CardTitle className="text-sm font-semibold">{hl.companyName}</CardTitle>
-                    <Badge
-                      variant="secondary"
-                      className="bg-primary/20 text-primary border-primary/30 text-xs font-semibold"
-                    >
-                      {hl.sentiment === "meeting_requested" ? "📅 Meeting Requested" : "🔥 Positive Interest"}
+                    <CardTitle className="text-sm font-bold text-foreground">{hl.companyName}</CardTitle>
+                    <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30 text-xs">
+                      {hl.sentiment === "meeting_requested" ? "📅 Meeting Requested" : "🔥 High Interest"}
                     </Badge>
                   </div>
-                  <CardDescription className="text-xs text-muted-foreground">
-                    {hl.contactName} &lt;{hl.contactEmail}&gt; • Received {new Date(hl.detectedAt).toLocaleString()}
+                  <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                    Contact: <span className="text-foreground font-medium">{hl.contactName}</span> ({hl.contactEmail})
                   </CardDescription>
                 </div>
 
-                <Button size="sm" className="text-xs h-8">
-                  <Calendar className="mr-1.5 h-3.5 w-3.5" /> Book Call / Handoff
-                </Button>
+                <div className="text-right text-xs text-muted-foreground">
+                  {new Date(hl.detectedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
               </CardHeader>
 
-              <CardContent className="pt-2">
-                <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs italic text-foreground leading-relaxed">
+              <CardContent className="space-y-3">
+                <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-xs italic text-foreground/90">
                   "{hl.replySnippet}"
                 </div>
 
-                <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1 text-primary">
-                    <CheckCircle2 className="h-3.5 w-3.5" /> Human notification dispatched
+                <div className="flex justify-between items-center pt-2 text-xs">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Routed to human sales rep
                   </span>
-                  <span>Lead ID: {hl.leadId}</span>
+
+                  <a
+                    href={`mailto:${hl.contactEmail}?subject=Re:%20Introductory%20Discussion`}
+                    className="inline-flex"
+                  >
+                    <Button size="sm" className="h-7 text-xs">
+                      <Mail className="mr-1.5 h-3.5 w-3.5" /> Reply to Prospect
+                    </Button>
+                  </a>
                 </div>
               </CardContent>
             </Card>

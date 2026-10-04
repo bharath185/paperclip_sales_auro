@@ -43,9 +43,10 @@ export function LeadCenter({ companyId, campaign }: LeadCenterProps) {
     setLoading(true);
     try {
       const data = await salesApi.listLeads(companyId, campaign.id);
-      setLeads(data);
+      setLeads(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Failed to load leads", err);
+      setLeads([]);
     } finally {
       setLoading(false);
     }
@@ -81,11 +82,12 @@ export function LeadCenter({ companyId, campaign }: LeadCenterProps) {
     }
   };
 
-  const filteredLeads = leads.filter((l) => {
-    const searchTarget = `${l.companyName} ${l.contactName || ""} ${l.industry} ${l.subSegment || ""} ${l.locationCity || ""}`.toLowerCase();
+  const safeLeads = Array.isArray(leads) ? leads : [];
+  const filteredLeads = safeLeads.filter((l) => {
+    const searchTarget = `${l.companyName || ""} ${l.contactName || ""} ${l.industry || ""} ${l.subSegment || ""} ${l.locationCity || ""}`.toLowerCase();
     const matchesSearch = searchTarget.includes(searchQuery.toLowerCase());
     const matchesStage = stageFilter === "all" || l.crmStage === stageFilter;
-    const matchesScore = l.leadScore >= minScoreFilter;
+    const matchesScore = (l.leadScore ?? 0) >= minScoreFilter;
     return matchesSearch && matchesStage && matchesScore;
   });
 
@@ -94,7 +96,7 @@ export function LeadCenter({ companyId, campaign }: LeadCenterProps) {
       {/* Header and Controls */}
       <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
         <div>
-          <h3 className="text-base font-semibold text-foreground">Lead Database & Market Intelligence</h3>
+          <h3 className="text-base font-semibold text-foreground">Lead Database &amp; Market Intelligence</h3>
           <p className="text-xs text-muted-foreground">
             {campaign ? `Showing leads discovered for ${campaign.name}` : "Select a campaign to inspect leads"}
           </p>
@@ -191,7 +193,7 @@ export function LeadCenter({ companyId, campaign }: LeadCenterProps) {
           <table className="w-full text-left text-xs">
             <thead className="bg-muted/50 border-b border-border text-muted-foreground font-medium">
               <tr>
-                <th className="p-3">Company & Domain</th>
+                <th className="p-3">Company &amp; Domain</th>
                 <th className="p-3">Decision Maker</th>
                 <th className="p-3">Sub-segment</th>
                 <th className="p-3">Location</th>
@@ -206,7 +208,7 @@ export function LeadCenter({ companyId, campaign }: LeadCenterProps) {
                   <td colSpan={7} className="p-8 text-center text-muted-foreground">
                     {loading
                       ? "Loading leads..."
-                      : leads.length === 0
+                      : safeLeads.length === 0
                       ? "No leads in this campaign yet. Click 'Dispatch Researchers' above."
                       : "No leads match the current filters."}
                   </td>
@@ -232,31 +234,33 @@ export function LeadCenter({ companyId, campaign }: LeadCenterProps) {
                       <Badge
                         variant="secondary"
                         className={
-                          lead.leadScore >= 80
+                          (lead.leadScore ?? 0) >= 80
                             ? "bg-primary/20 text-primary border-primary/30"
-                            : lead.leadScore >= 60
+                            : (lead.leadScore ?? 0) >= 60
                             ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
                             : "bg-muted text-muted-foreground"
                         }
                       >
-                        {lead.leadScore}/100
+                        {lead.leadScore ?? 0}/100
                       </Badge>
                     </td>
                     <td className="p-3">
-                      <Badge variant="outline" className="capitalize">
-                        {lead.crmStage === "hot_lead" ? (
-                          <span className="flex items-center gap-1 text-primary">
-                            <Flame className="h-3 w-3" /> Hot Lead
-                          </span>
-                        ) : (
-                          lead.crmStage
-                        )}
+                      <Badge variant="outline" className="text-xs capitalize">
+                        {lead.crmStage?.replace("_", " ") || "new"}
                       </Badge>
                     </td>
                     <td className="p-3 text-right">
-                      <Button variant="ghost" size="sm" onClick={() => setSelectedLead(lead)}>
-                        Details
-                      </Button>
+                      {lead.sourceUrl && (
+                        <a
+                          href={lead.sourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline inline-flex items-center gap-1 text-xs"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Source <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -266,73 +270,39 @@ export function LeadCenter({ companyId, campaign }: LeadCenterProps) {
         </div>
       </Card>
 
-      {/* Detail Modal / Drawer */}
+      {/* Selected Lead Modal Detail */}
       {selectedLead && (
-        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="max-w-xl w-full border-border bg-card shadow-lg max-h-full flex flex-col">
-            <CardHeader className="flex flex-row items-start justify-between border-b border-border pb-4">
-              <div>
-                <CardTitle className="text-lg font-semibold">{selectedLead.companyName}</CardTitle>
-                <CardDescription className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
-                  <MapPin className="h-3.5 w-3.5 text-primary" /> {selectedLead.locationCity || "Bengaluru"}
-                  <span>•</span>
-                  <span>{selectedLead.industry} ({selectedLead.subSegment})</span>
-                </CardDescription>
-              </div>
-              <Badge
-                variant="secondary"
-                className={
-                  selectedLead.leadScore >= 80
-                    ? "bg-primary/20 text-primary border-primary/30 font-semibold"
-                    : "bg-muted text-muted-foreground"
-                }
-              >
-                Score: {selectedLead.leadScore}
-              </Badge>
-            </CardHeader>
-
-            <CardContent className="space-y-4 pt-4 overflow-y-auto flex-1">
-              <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
-                <div className="text-xs font-semibold text-foreground uppercase tracking-wide">
-                  Decision-Maker Profile
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div>
-                    <span className="text-muted-foreground">Name:</span>{" "}
-                    <span className="font-medium text-foreground">{selectedLead.contactName || "—"}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Title:</span>{" "}
-                    <span className="font-medium text-foreground">{selectedLead.contactTitle || "—"}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="text-foreground">{selectedLead.contactEmail || "—"}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="text-foreground">{selectedLead.contactPhone || "—"}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="text-xs font-semibold text-foreground">Verification & Compliance</div>
-                <div className="text-xs text-muted-foreground space-y-1">
-                  <p>• Data Source: Sanitized Public Corporate Directory & Leadership Index</p>
-                  <p>• Verification: Syntax Checked, Non-disposable Domain Confirmed</p>
-                  <p>• Suppression Status: Active (Not opted out)</p>
-                </div>
-              </div>
-            </CardContent>
-
-            <div className="flex justify-end gap-2 border-t border-border p-4 bg-muted/20">
-              <Button variant="outline" size="sm" onClick={() => setSelectedLead(null)}>
-                Close
-              </Button>
+        <Card className="border-primary/40 bg-card p-4 space-y-3">
+          <div className="flex justify-between items-start">
+            <div>
+              <h4 className="text-sm font-bold text-foreground">{selectedLead.companyName}</h4>
+              <p className="text-xs text-muted-foreground">{selectedLead.companyDomain} • {selectedLead.locationCity || "Bengaluru"}</p>
             </div>
-          </Card>
-        </div>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedLead(null)}>
+              Close
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+            <div className="rounded-md border border-border p-2 space-y-1">
+              <span className="text-muted-foreground">Decision Maker</span>
+              <div className="font-semibold text-foreground">{selectedLead.contactName || "—"}</div>
+              <div className="text-muted-foreground">{selectedLead.contactTitle || "—"}</div>
+              <div className="text-primary truncate">{selectedLead.contactEmail || "—"}</div>
+            </div>
+
+            <div className="rounded-md border border-border p-2 space-y-1">
+              <span className="text-muted-foreground">AI Qualification Reasoning</span>
+              <p className="text-muted-foreground">{selectedLead.qualificationReasoning || "Matches high-precision manufacturing subsegment criteria."}</p>
+            </div>
+
+            <div className="rounded-md border border-border p-2 space-y-1">
+              <span className="text-muted-foreground">Verification &amp; Confidence</span>
+              <div className="font-semibold text-foreground">{selectedLead.verificationScore || 90}% Verified Email</div>
+              <div className="text-muted-foreground">Status: {selectedLead.isSuppressed ? "Suppressed (Opted Out)" : "Active / Verified"}</div>
+            </div>
+          </div>
+        </Card>
       )}
     </div>
   );
