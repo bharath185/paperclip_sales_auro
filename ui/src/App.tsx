@@ -60,6 +60,7 @@ import { CompanySettings } from "./pages/CompanySettings";
 import { CompanyEnvironments } from "./pages/CompanyEnvironments";
 import { Governance } from "./pages/Governance";
 import { Sales } from "./pages/Sales";
+import { SalesInbox } from "./pages/SalesInbox";
 import { BootstrapSetupUxLab } from "./pages/BootstrapSetupUxLab";
 import { ResponsibleUserDenialUxLab } from "./pages/ResponsibleUserDenialUxLab";
 import { CrossIssueCollaborationUxLab } from "./pages/CrossIssueCollaborationUxLab";
@@ -382,9 +383,9 @@ function boardRoutes(streamlinedUiEnabled: boolean) {
       <Route path="governance" element={<Governance />} />
       <Route path="sales" element={<Sales />} />
       <Route path="artifacts" element={<Artifacts />} />
-      <Route path="approvals" element={<Navigate to="/approvals/pending" replace />} />
-      <Route path="approvals/pending" element={<Approvals />} />
-      <Route path="approvals/all" element={<Approvals />} />
+      <Route path="approvals" element={<SalesInbox />} />
+      <Route path="approvals/pending" element={<SalesInbox />} />
+      <Route path="approvals/all" element={<SalesInbox />} />
       <Route path="approvals/:approvalId" element={<ApprovalDetail />} />
       <Route path="activity" element={streamlinedUiEnabled ? <CompanyActivity /> : <ProductionSurface><ProductionCompanyActivity /></ProductionSurface>} />
       {streamlinedUiEnabled ? (
@@ -424,12 +425,12 @@ function boardRoutes(streamlinedUiEnabled: boolean) {
       ) : null}
       <Route path="decisions" element={<WhatNeedsMe />} />
       <Route path="decisions/queues/:key" element={<DecisionQueuePage />} />
-      <Route path="inbox" element={<InboxRootRedirect />} />
-      <Route path="inbox/mine" element={<Inbox />} />
-      <Route path="inbox/recent" element={<Inbox />} />
-      <Route path="inbox/unread" element={<Inbox />} />
-      <Route path="inbox/blocked" element={<Inbox />} />
-      <Route path="inbox/all" element={<Inbox />} />
+      <Route path="inbox" element={<SalesInbox />} />
+      <Route path="inbox/mine" element={<SalesInbox />} />
+      <Route path="inbox/recent" element={<SalesInbox />} />
+      <Route path="inbox/unread" element={<SalesInbox />} />
+      <Route path="inbox/blocked" element={<SalesInbox />} />
+      <Route path="inbox/all" element={<SalesInbox />} />
       <Route path="inbox/requests" element={<JoinRequestQueue />} />
       <Route path="inbox/new" element={<Navigate to="/inbox/mine" replace />} />
       <Route path="u/:userSlug" element={<UserProfile />} />
