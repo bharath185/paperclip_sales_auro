@@ -27,16 +27,22 @@
 ### 2. Installation & Local Development
 ```bash
 # Clone the repository
-git clone https://github.com/bharath185/project_auro_opencode.git
-cd project_auro_opencode
+git clone https://github.com/bharath185/paperclip_sales_auro.git
+cd paperclip_sales_auro
 
 # Install dependencies
 pnpm install
 
-# Run database migrations (auto-provisions local PGlite)
-pnpm db:migrate
+# (Optional) Set your Gemini or OpenRouter API key for live AI research
+# In Windows PowerShell:
+$env:GEMINI_API_KEY="your-gemini-api-key"
+# In Linux/macOS:
+export GEMINI_API_KEY="your-gemini-api-key"
 
-# Start the full-stack server and UI
+# Build all packages
+pnpm build
+
+# Start the full-stack server and UI in dev mode (uses embedded database automatically)
 pnpm dev
 ```
 
